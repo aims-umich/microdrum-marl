@@ -12,6 +12,7 @@ from stable_baselines3.common.vec_env import VecMonitor
 from stable_baselines3.common.monitor import Monitor
 import stable_baselines3 as sb3
 import supersuit as ss
+from pettingzoo.utils.conversions import parallel_to_aec
 
 
 class PIDController:

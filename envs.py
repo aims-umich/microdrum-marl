@@ -150,7 +150,7 @@ class HolosMulti(gym.Env):
         self.observation_space = gym.spaces.Dict({
             "drum_angles": gym.spaces.Box(low=0, high=1, shape=(8,), dtype=np.float32),
             "power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
-            "desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            "last_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
         })
             
@@ -178,7 +178,7 @@ class HolosMulti(gym.Env):
         observation = {
             "drum_angles": self.drum_angles / 180,  # convert to 0 to 1 box space
             "power": np.array([current_power + fuzz]),
-            "desired_power": np.array([current_desired_power]),
+            "last_power": np.array([current_power]),
             "next_desired_power": np.array([next_desired_power / 100]),
         }
 
@@ -217,7 +217,7 @@ class HolosMulti(gym.Env):
         observation = {
             "drum_angles": self.drum_angles / 180,  # convert to 0-1 box space
             "power": np.array([current_power + fuzz]),
-            "desired_power": np.array([current_desired_power]),
+            "last_power": np.array([self.history[-2][10]]),  # 10 is the actual power index
             "next_desired_power": np.array([next_desired_power / 100]),  # convert to 0-1 box space
         }
 
@@ -279,7 +279,7 @@ class HolosSingle(gym.Env):
         self.observation_space = gym.spaces.Dict({
             "drum_angle": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             "power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
-            "desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            "last_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
         })
         self.multi_env.reset()
@@ -287,12 +287,9 @@ class HolosSingle(gym.Env):
     def reset(self, seed=None, options=None):
         obs, info = self.multi_env.reset(seed=seed, options=options)
         self.time = self.multi_env.time
-        observation = {
-            "drum_angle": np.array([np.mean(obs["drum_angles"])]),  # treat as a single drum angle
-            "power": np.array(obs["power"]),
-            "desired_power": np.array(obs["desired_power"]),
-            "next_desired_power": np.array(obs["next_desired_power"]),
-        }
+        observation = obs.copy()
+        observation.pop('drum_angles', None)
+        observation["drum_angle"] = np.array([np.mean(obs["drum_angles"])])  # treat as a single drum angle
         return observation, info
 
     def step(self, action):
@@ -300,12 +297,9 @@ class HolosSingle(gym.Env):
         action = np.array([unwrapped_action] * 8)
         obs, reward, terminated, truncated, info = self.multi_env.step(action)
         self.time = self.multi_env.time
-        observation = {
-            "drum_angle": np.array([np.mean(obs["drum_angles"])]),  # treat as a single drum angle
-            "power": np.array(obs["power"]),
-            "desired_power": np.array(obs["desired_power"]),
-            "next_desired_power": np.array(obs["next_desired_power"]),
-        }
+        observation = obs.copy()
+        observation.pop('drum_angles', None)
+        observation["drum_angle"] = np.array([np.mean(obs["drum_angles"])])  # treat as a single drum angle
         return observation, reward, terminated, truncated, info
 
     def render(self, mode='human'):
@@ -334,7 +328,7 @@ class HolosMARL(ParallelEnv):
             agent: gym.spaces.Dict({
                 "drum_angle": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
                 "power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
-                "desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+                "last_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
                 "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             })
             for agent in self.agents
@@ -352,6 +346,7 @@ class HolosMARL(ParallelEnv):
 
         observations = {agent: obs.copy() for agent in self.agents}
         for agent in self.agents:
+            observations[agent].pop('drum_angles', None)
             index = int(agent.split("_")[-1])
             observations[agent]["drum_angle"] = np.array([obs["drum_angles"][index]])
         infos = {agent: info for agent in self.agents}
@@ -368,9 +363,10 @@ class HolosMARL(ParallelEnv):
         # Distribute observations, rewards, and other info to all agents
         observations = {agent: obs.copy() for agent in self.agents}
         for agent in self.agents:
+            observations[agent].pop('drum_angles', None)
             index = int(agent.split("_")[-1])
             observations[agent]["drum_angle"] = np.array([obs["drum_angles"][index]])
-        rewards = {agent: (reward / 8) for agent in self.agents}
+        rewards = {agent: (reward) for agent in self.agents}
         terminations = {agent: terminated for agent in self.agents}
         truncations = {agent: truncated for agent in self.agents}
         infos = {agent: info for agent in self.agents}
