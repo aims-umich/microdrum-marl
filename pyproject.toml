@@ -1,0 +1,11 @@
+[project]
+name = "microdrum-marl"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pettingzoo>=1.24.3",
+    "stable-baselines3[extra]>=2.5.0",
+    "supersuit>=3.9.3",
+]
