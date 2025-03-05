@@ -78,7 +78,8 @@ def main():
         model.learn(total_timesteps=2_000_000, callback=eval_callback, progress_bar=True)
 
     # load and run the saved model
-    model = sb3.PPO.load(model_folder / 'best_model.zip', device='cpu')
+    model_path = microutils.find_latest_file(model_folder, pattern='*.zip')
+    model = sb3.PPO.load(model_path, device='cpu')
     env = envs.HolosSingle(profile=training_profile, episode_length=200, run_path=run_folder, train_mode=False)
     microutils.rl_control_loop(model, env)
     history_path = microutils.find_latest_file(run_folder, pattern='run_history*.csv')
@@ -109,7 +110,7 @@ def main():
     if not model_folder.exists():
         model_folder.mkdir(exist_ok=True)
         log_dir = run_folder / 'logs/'
-        vec_env = make_vec_env(envs.HolosMulti, n_envs=12,
+        vec_env = make_vec_env(envs.HolosMulti, n_envs=6,
                                env_kwargs={'profile': training_profile,
                                            'episode_length': 200,
                                            'run_path': run_folder,
@@ -127,11 +128,12 @@ def main():
                                      best_model_save_path=str(model_folder),
                                      log_path=str(log_dir),
                                      deterministic=True,
-                                     eval_freq=1000)
+                                     eval_freq=2000)
         model.learn(total_timesteps=2_000_000, callback=eval_callback, progress_bar=True)
 
     # load and run the saved model
-    model = sb3.PPO.load(model_folder / 'best_model.zip', device='cpu')
+    model_path = microutils.find_latest_file(model_folder, pattern='*.zip')
+    model = sb3.PPO.load(model_path, device='cpu')
     env = envs.HolosMulti(profile=training_profile, episode_length=200, run_path=run_folder, train_mode=False)
     microutils.rl_control_loop(model, env)
     history_path = microutils.find_latest_file(run_folder, pattern='run_history*.csv')
@@ -162,7 +164,7 @@ def main():
     if not model_folder.exists():
         model_folder.mkdir(exist_ok=True)
         log_dir = run_folder / 'logs/'
-        vec_env = make_vec_env(envs.HolosMulti, n_envs=12,
+        vec_env = make_vec_env(envs.HolosMulti, n_envs=6,
                                env_kwargs={'profile': training_profile,
                                            'episode_length': 200,
                                            'run_path': run_folder,
@@ -182,11 +184,12 @@ def main():
                                      best_model_save_path=str(model_folder),
                                      log_path=str(log_dir),
                                      deterministic=True,
-                                     eval_freq=1000)
+                                     eval_freq=2000)
         model.learn(total_timesteps=5_000_000, callback=eval_callback, progress_bar=True)
 
     # load and run the saved model
-    model = sb3.PPO.load(model_folder / 'best_model.zip', device='cpu')
+    model_path = microutils.find_latest_file(model_folder, pattern='*.zip')
+    model = sb3.PPO.load(model_path, device='cpu')
     env = envs.HolosMulti(profile=training_profile, episode_length=200, run_path=run_folder, train_mode=False)
     microutils.rl_control_loop(model, env)
     history_path = microutils.find_latest_file(run_folder, pattern='run_history*.csv')
