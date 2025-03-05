@@ -7,10 +7,11 @@ from scipy.interpolate import interp1d
 import envs
 import os
 from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.callbacks import EvalCallback
+from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback
 from stable_baselines3.common.vec_env import VecMonitor
 from stable_baselines3.common.monitor import Monitor
 import stable_baselines3 as sb3
+import supersuit as ss
 
 
 class PIDController:
@@ -179,7 +180,7 @@ def test_trained_rl(env_type: type, env_kwargs: dict) -> pd.DataFrame:
     return history
 
 
-def train_marl(env_type, env_kwargs, total_timesteps=20_000_000):
+def train_marl(env_type, env_kwargs, total_timesteps=40_000_000):
     run_folder = env_kwargs['run_path']
     model_folder = run_folder / 'models/'
     model_folder.mkdir(exist_ok=True)
@@ -194,7 +195,7 @@ def train_marl(env_type, env_kwargs, total_timesteps=20_000_000):
     # the model will be saved every 6envs * 8drums * 20_000 = 960_000 timesteps
     checkpoint_callback = CheckpointCallback(save_freq=20_000, save_path=str(model_folder),
                                              name_prefix='ppo_marl')
-    model = PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=str(log_dir), device='cpu')
+    model = sb3.PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=str(log_dir), device='cpu')
     model.learn(total_timesteps=total_timesteps, callback=checkpoint_callback, progress_bar=True)
 
 
@@ -209,6 +210,19 @@ def marl_control_loop(model, env):
             action, _ = model.predict(obs, deterministic=True)
             env.step(action)
     env.render()
+
+def test_trained_marl(env_type, env_kwargs):
+    run_folder = env_kwargs['run_path']
+    model_folder = run_folder / 'models/'
+    model_path = find_latest_file(model_folder, pattern='*.zip')
+    model = sb3.PPO.load(model_path, device='cpu')
+    test_env = env_type(**env_kwargs)
+    marl_control_loop(model, test_env)
+    history_path = find_latest_file(run_folder, pattern='run_history*.csv')
+    history = load_history(history_path)
+    mae, iae, control_effort = calc_metrics(history)
+    print(f'{run_folder.name} - MAE: {mae}, IAE: {iae}, Control Effort: {control_effort}')
+    return history
 
 
 if __name__ == '__main__':
