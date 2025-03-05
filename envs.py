@@ -313,16 +313,19 @@ class HolosSingle(gym.Env):
 
 
 class HolosMARL(ParallelEnv):
+    metadata = {"render_modes": ["dataframe"], "name": "holos_marl_v0"}
     def __init__(self, profile, episode_length, run_path=None,
                  train_mode=True, noise=0.0, debug=False,
                  valid_maskings=(0,)):
         super().__init__()
+        self.render_mode = "dataframe"
         self.gym_env = HolosMulti(profile, episode_length, run_path, train_mode, noise, debug, valid_maskings)
         self.agents = [f"agent_{i}" for i in range(8)]  # 8 control drums
+        self.possible_agents = self.agents[:]
 
         # Each agent represents one out of the eight control drums
         self._action_spaces = {
-            agent: Box(low=-1, high=1, shape=(1,), dtype=np.float32)
+            agent: gym.spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)
             for agent in self.agents
         }
 
@@ -349,7 +352,8 @@ class HolosMARL(ParallelEnv):
 
         observations = {agent: obs.copy() for agent in self.agents}
         for agent in self.agents:
-            observations[agent]["drum_angle"] = np.array([obs["drum_angles"][agent]])
+            index = int(agent.split("_")[-1])
+            observations[agent]["drum_angle"] = np.array([obs["drum_angles"][index]])
         infos = {agent: info for agent in self.agents}
 
         return observations, infos
@@ -364,7 +368,8 @@ class HolosMARL(ParallelEnv):
         # Distribute observations, rewards, and other info to all agents
         observations = {agent: obs.copy() for agent in self.agents}
         for agent in self.agents:
-            observations[agent]["drum_angle"] = np.array([obs["drum_angles"][agent]])
+            index = int(agent.split("_")[-1])
+            observations[agent]["drum_angle"] = np.array([obs["drum_angles"][index]])
         rewards = {agent: (reward / 8) for agent in self.agents}
         terminations = {agent: terminated for agent in self.agents}
         truncations = {agent: truncated for agent in self.agents}
