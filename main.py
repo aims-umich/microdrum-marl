@@ -56,7 +56,7 @@ def main():
     if not model_folder.exists():
         model_folder.mkdir(exist_ok=True)
         log_dir = run_folder / 'logs/'
-        vec_env = make_vec_env(envs.HolosSingle, n_envs=30,
+        vec_env = make_vec_env(envs.HolosSingle, n_envs=12,
                                env_kwargs={'profile': training_profile,
                                            'episode_length': 200,
                                            'run_path': run_folder,
@@ -74,7 +74,7 @@ def main():
                                      best_model_save_path=str(model_folder),
                                      log_path=str(log_dir),
                                      deterministic=True,
-                                     eval_freq=500)
+                                     eval_freq=1000)
         model.learn(total_timesteps=2_000_000, callback=eval_callback, progress_bar=True)
 
     # load and run the saved model
@@ -109,7 +109,7 @@ def main():
     if not model_folder.exists():
         model_folder.mkdir(exist_ok=True)
         log_dir = run_folder / 'logs/'
-        vec_env = make_vec_env(envs.HolosMulti, n_envs=30,
+        vec_env = make_vec_env(envs.HolosMulti, n_envs=12,
                                env_kwargs={'profile': training_profile,
                                            'episode_length': 200,
                                            'run_path': run_folder,
@@ -127,7 +127,7 @@ def main():
                                      best_model_save_path=str(model_folder),
                                      log_path=str(log_dir),
                                      deterministic=True,
-                                     eval_freq=500)
+                                     eval_freq=1000)
         model.learn(total_timesteps=2_000_000, callback=eval_callback, progress_bar=True)
 
     # load and run the saved model
@@ -162,7 +162,7 @@ def main():
     if not model_folder.exists():
         model_folder.mkdir(exist_ok=True)
         log_dir = run_folder / 'logs/'
-        vec_env = make_vec_env(envs.HolosMulti, n_envs=30,
+        vec_env = make_vec_env(envs.HolosMulti, n_envs=12,
                                env_kwargs={'profile': training_profile,
                                            'episode_length': 200,
                                            'run_path': run_folder,
@@ -182,7 +182,7 @@ def main():
                                      best_model_save_path=str(model_folder),
                                      log_path=str(log_dir),
                                      deterministic=True,
-                                     eval_freq=500)
+                                     eval_freq=1000)
         model.learn(total_timesteps=5_000_000, callback=eval_callback, progress_bar=True)
 
     # load and run the saved model
