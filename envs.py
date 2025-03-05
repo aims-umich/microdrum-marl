@@ -149,8 +149,9 @@ class HolosMulti(gym.Env):
         self.action_space = gym.spaces.Box(low=-1, high=1, shape=(8,), dtype=np.float32)
         self.observation_space = gym.spaces.Dict({
             "drum_angles": gym.spaces.Box(low=0, high=1, shape=(8,), dtype=np.float32),
-            "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             "power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            "desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
         })
             
         self.reset()
@@ -176,8 +177,9 @@ class HolosMulti(gym.Env):
         fuzz = np.random.normal(0, self.noise)
         observation = {
             "drum_angles": self.drum_angles / 180,  # convert to 0 to 1 box space
-            "next_desired_power": np.array([next_desired_power / 100]),
             "power": np.array([current_power + fuzz]),
+            "desired_power": np.array([current_desired_power]),
+            "next_desired_power": np.array([next_desired_power / 100]),
         }
 
         return observation, {'latest': self.history[-1]}
@@ -202,7 +204,7 @@ class HolosMulti(gym.Env):
         sol = solve_ivp(self.pke.reactor_dae, [0, 1], self.y, args=drum_forcers)
         self.y = sol.y[:,-1]
         self.drum_angles += real_action
-        assert self.drum_angles.min() >= 0 and self.drum_angles.max() <= 180, 'drum angles out of bounds'
+        # assert self.drum_angles.min() >= 0 and self.drum_angles.max() <= 180, 'drum angles out of bounds'
         current_desired_power = self.profile(self.time) / 100
         self.time += 1
 
@@ -214,8 +216,9 @@ class HolosMulti(gym.Env):
         fuzz = np.random.normal(0, self.noise)
         observation = {
             "drum_angles": self.drum_angles / 180,  # convert to 0-1 box space
-            "next_desired_power": np.array([next_desired_power / 100]),  # convert to 0-1 box space
             "power": np.array([current_power + fuzz]),
+            "desired_power": np.array([current_desired_power]),
+            "next_desired_power": np.array([next_desired_power / 100]),  # convert to 0-1 box space
         }
 
         desired_power = self.profile(self.time) / 100
@@ -227,6 +230,9 @@ class HolosMulti(gym.Env):
         if self.time >= self.episode_length - 1:
             truncated = True
         info = {'latest': self.history[-1]}
+        if self.drum_angles.min() < 0 or self.drum_angles.max() > 180:
+            reward -= 100
+            terminated = True
 
         return observation, reward, terminated, truncated, info
 
@@ -272,8 +278,9 @@ class HolosSingle(gym.Env):
         self.action_space = gym.spaces.Box(low=-1, high=1, shape=(1,), dtype=np.float32)
         self.observation_space = gym.spaces.Dict({
             "drum_angle": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
-            "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             "power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            "desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
         })
         self.multi_env.reset()
 
@@ -282,8 +289,9 @@ class HolosSingle(gym.Env):
         self.time = self.multi_env.time
         observation = {
             "drum_angle": np.array([np.mean(obs["drum_angles"])]),  # treat as a single drum angle
-            "next_desired_power": np.array(obs["next_desired_power"]),
             "power": np.array(obs["power"]),
+            "desired_power": np.array(obs["desired_power"]),
+            "next_desired_power": np.array(obs["next_desired_power"]),
         }
         return observation, info
 
@@ -294,8 +302,9 @@ class HolosSingle(gym.Env):
         self.time = self.multi_env.time
         observation = {
             "drum_angle": np.array([np.mean(obs["drum_angles"])]),  # treat as a single drum angle
-            "next_desired_power": np.array(obs["next_desired_power"]),
             "power": np.array(obs["power"]),
+            "desired_power": np.array(obs["desired_power"]),
+            "next_desired_power": np.array(obs["next_desired_power"]),
         }
         return observation, reward, terminated, truncated, info
 
@@ -321,8 +330,9 @@ class HolosMARL(ParallelEnv):
         self._observation_spaces = {
             agent: gym.spaces.Dict({
                 "drum_angle": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
-                "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
                 "power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+                "desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+                "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             })
             for agent in self.agents
         }
