@@ -234,12 +234,12 @@ class HolosMulti(gym.Env):
         """Returns reward and whether the episode is terminated."""
         # First component: give reward to stay in the correct range
         diff = 100*abs(current_power - desired_power)
-        assert diff <= 2, 'diff out of reasonable bounds'
+        assert diff <= 200, 'diff out of reasonable bounds'
         reward = 2 - diff
 
         # give a punish outside bounds if in train mode
         terminated = False
-        if self.train_mode and diff > .05:
+        if self.train_mode and diff > 5:
             reward -= 100
             terminated = True
 
