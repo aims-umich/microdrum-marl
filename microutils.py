@@ -8,7 +8,7 @@ import envs
 import os
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback
-from stable_baselines3.common.vec_env import VecMonitor
+from stable_baselines3.common.vec_env import VecMonitor, SubprocVecEnv
 from stable_baselines3.common.monitor import Monitor
 import stable_baselines3 as sb3
 import supersuit as ss
@@ -133,14 +133,19 @@ def plot_history(history: pd.DataFrame):
     plt.show()
 
 
-def train_rl(env_type, env_kwargs, total_timesteps=2_000_000):
+def train_rl(env_type, env_kwargs, total_timesteps=2_000_000, n_envs=6,
+             hpc=False):
     run_folder = env_kwargs['run_path']
     model_folder = run_folder / 'models/'
     model_folder.mkdir(exist_ok=True)
     log_dir = run_folder / 'logs/'
-
-    vec_env = make_vec_env(env_type, n_envs=6,
-                            env_kwargs=env_kwargs)
+    if hpc:
+        vec_env = make_vec_env(env_type, n_envs=n_envs,
+                                env_kwargs=env_kwargs,
+                                vec_env_cls=SubprocVecEnv)
+    else:
+        vec_env = make_vec_env(env_type, n_envs=n_envs,
+                                env_kwargs=env_kwargs)
     vec_env = VecMonitor(vec_env,
                         filename=str(log_dir / 'vec'))
     model = sb3.PPO('MultiInputPolicy', vec_env, verbose=1,
@@ -148,11 +153,13 @@ def train_rl(env_type, env_kwargs, total_timesteps=2_000_000):
                     device='cpu')
     eval_env = env_type(**env_kwargs)
     eval_env = Monitor(eval_env, filename=str(log_dir / 'eval'))
+    eval_freq = 10_000 / n_envs
+    eval_freq = round(eval_freq, -3)  # round to nearest 1000 to eval every ~10k steps
     eval_callback = EvalCallback(eval_env=eval_env,
                                     best_model_save_path=str(model_folder),
                                     log_path=str(log_dir),
                                     deterministic=True,
-                                    eval_freq=2000)
+                                    eval_freq=eval_freq)
     model.learn(total_timesteps=total_timesteps, callback=eval_callback, progress_bar=True)
 
 
@@ -181,7 +188,7 @@ def test_trained_rl(env_type: type, env_kwargs: dict) -> pd.DataFrame:
     return history
 
 
-def train_marl(env_type, env_kwargs, total_timesteps=40_000_000):
+def train_marl(env_type, env_kwargs, total_timesteps=40_000_000, n_envs=6):
     run_folder = env_kwargs['run_path']
     model_folder = run_folder / 'models/'
     model_folder.mkdir(exist_ok=True)
@@ -190,11 +197,13 @@ def train_marl(env_type, env_kwargs, total_timesteps=40_000_000):
 
     env = env_type(**env_kwargs)
     env = ss.pettingzoo_env_to_vec_env_v1(env)
-    env = ss.concat_vec_envs_v1(env, 6, base_class="stable_baselines3")
+    env = ss.concat_vec_envs_v1(env, n_envs, base_class="stable_baselines3")
     vec_log_folder = run_folder / 'logs/vec'
     env = VecMonitor(env, filename=str(vec_log_folder))
     # the model will be saved every 6envs * 8drums * 20_000 = 960_000 timesteps
-    checkpoint_callback = CheckpointCallback(save_freq=20_000, save_path=str(model_folder),
+    save_freq = 1_000_000 / (8 * n_envs)
+    save_freq = round(save_freq, -3) # round to nearest 1000 to get saves every ~1 mil timesteps
+    checkpoint_callback = CheckpointCallback(save_freq=save_freq, save_path=str(model_folder),
                                              name_prefix='ppo_marl')
     model = sb3.PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=str(log_dir), device='cpu')
     model.learn(total_timesteps=total_timesteps, callback=checkpoint_callback, progress_bar=True)

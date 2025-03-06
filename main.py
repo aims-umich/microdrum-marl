@@ -2,6 +2,7 @@ import stable_baselines3 as sb3
 import numpy as np
 import pandas as pd
 from pathlib import Path
+import argparse
 import matplotlib
 import matplotlib.pyplot as plt
 import envs
@@ -13,13 +14,32 @@ from stable_baselines3.common.vec_env import VecMonitor
 from stable_baselines3.common.monitor import Monitor
 
 
-def main():
+def main(args):
     # create interpolated power profiles to match the Holos benchmark
-    plotting = False
-    training_profile = interp1d([  0,  20, 30, 35, 60, 100, 120, 125, 140, 160, 180, 200], # times (s)
-                                [100, 100, 90, 90, 55,  55,  65,  65,  80,  80,  95,  95]) # power (SPU)
+    args.plotting
+    args.inl_hpc
+    args.num_envs
+    args.timesteps
+    
+    training_profile = interp1d([  0,  15, 30, 70, 100, 140, 160, 195, 200], # times (s)
+                                [100, 100, 80, 55,  55,  70,  70,  80,  80]) # power (SPU)
+
+    lowpower_profile = interp1d([  0,   5, 100, 200], # times (s)
+                                [100, 100,  40,  90]) # power (SPU)
+    longtest_profile = interp1d([  0,  2000, 3000, 3500, 6000, 10000, 12000, 12500, 14000, 16000, 18000, 20000], # times (s)
+                                [100,   100,   90,   90,   45,    45,    65,    65,    80,  80,  95,  95]) # power (SPU)
     testing_profile = interp1d([  0,  10, 70, 100, 115, 125, 150, 180, 200], # times (s)
                                [100, 100, 45, 45,   65,  65,  50,  80,  80]) # power (SPU)
+
+    match args.test_profile:
+        case 'longtest':
+            test_profile = longtest_profile
+        case 'lowpower':
+            test_profile = lowpower_profile
+        case 'training':
+            test_profile = training_profile
+        case _:
+            test_profile = testing_profile
 
     ##################
     # PID Controller #
@@ -31,7 +51,7 @@ def main():
                       'episode_length': 200,
                       'run_path': run_folder,
                       'train_mode': True}
-    testing_kwargs = {'profile': testing_profile,
+    testing_kwargs = {'profile': test_profile,
                      'episode_length': 200,
                      'run_path': run_folder,
                      'train_mode': False}
@@ -43,7 +63,7 @@ def main():
     pid_test_history = microutils.load_history(history_path)
     mae, iae, control_effort = microutils.calc_metrics(pid_test_history)
     print(f'PID test - MAE: {mae}, IAE: {iae}, Control Effort: {control_effort}')
-    if plotting:
+    if args.plotting:
         microutils.plot_history(pid_test_history)
 
     ####################
@@ -57,10 +77,12 @@ def main():
     model_folder = run_folder / 'models/'
     # if a model has already been trained, don't re-train
     if not model_folder.exists():
-        microutils.train_rl(envs.HolosSingle, training_kwargs)
+        microutils.train_rl(envs.HolosSingle, training_kwargs,
+                            total_timesteps=args.timesteps,
+                            n_envs=args.num_envs)
     # test trained model
     single_action_test_history = microutils.test_trained_rl(envs.HolosSingle, testing_kwargs)
-    if plotting:
+    if args.plotting:
         microutils.plot_history(single_action_test_history)
 
     #################
@@ -74,9 +96,11 @@ def main():
     model_folder = run_folder / 'models/'
     # if a model has already been trained, don't re-train
     if not model_folder.exists():
-        microutils.train_rl(envs.HolosMulti, training_kwargs)
+        microutils.train_rl(envs.HolosMulti, training_kwargs,
+                            total_timesteps=args.timesteps,
+                            n_envs=args.num_envs)
     multi_drum_test_history = microutils.test_trained_rl(envs.HolosMulti, testing_kwargs)
-    if plotting:
+    if args.plotting:
         microutils.plot_history(multi_drum_test_history)
 
     #############################
@@ -93,11 +117,12 @@ def main():
         microutils.train_rl(envs.HolosMulti,
                             {**training_kwargs,
                              'symmetry_reward': True},
-                            total_timesteps=5_000_000)
+                            total_timesteps=args.timesteps,
+                            n_envs=args.num_envs)
     multi_symmetric_test_history = microutils.test_trained_rl(envs.HolosMulti,
                                                               {**testing_kwargs,
                                                               'symmetry_reward': True})
-    if plotting:
+    if args.plotting:
         microutils.plot_history(multi_symmetric_test_history)
 
     ########
@@ -109,15 +134,29 @@ def main():
     training_kwargs['run_path'] = run_folder
     training_kwargs['valid_maskings'] = (0,1,2,3)
     testing_kwargs['run_path'] = run_folder
-    testing_kwargs['valid_maskings'] = (5,)
+    testing_kwargs['valid_maskings'] = (0,)
     model_folder = run_folder / 'models/'
     # if a model has already been trained, don't re-train
     if not model_folder.exists():
-        microutils.train_marl(envs.HolosMARL, training_kwargs)
+        microutils.train_marl(envs.HolosMARL, training_kwargs,
+                              total_timesteps=(args.timesteps * 8),
+                              n_envs=args.num_envs)
     marl_test_history = microutils.test_trained_marl(envs.HolosMARL, testing_kwargs)
-    if plotting:
+    if args.plotting:
         microutils.plot_history(marl_test_history)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-n', '--num_envs', type=int, default=6,
+                        help='Number of environments to parallelize training over')
+    parser.add_argument('-c', '--inl_hpc', action='store_true',
+                        help='Use SubprocVecEnv if on an HPC cluster')
+    parser.add_argument('-i', '--plotting', action='store_true',
+                        help='Plot interactive, intermediate results')
+    parser.add_argument('-p', '--test_profile', type=str, default='test',
+                        help='Profile to use for testing (test, train, longtest, lowpower)')
+    parser.add_argument('-t', '--timesteps', type=int, default=2_000_000,
+                        help='Number of timesteps to train for')
+    args = parser.parse_args()
+    main(args)
