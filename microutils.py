@@ -150,7 +150,9 @@ def train_rl(env_type, env_kwargs, total_timesteps=2_000_000, n_envs=6,
                         filename=str(log_dir / 'vec'))
     model = sb3.PPO('MultiInputPolicy', vec_env, verbose=1,
                     tensorboard_log=str(log_dir),
-                    device='cpu')
+                    device='cpu',
+                    n_steps=4096,
+                    batch_size=256)
     eval_env = env_type(**env_kwargs)
     eval_env = Monitor(eval_env, filename=str(log_dir / 'eval'))
     eval_freq = 10_000 / n_envs
