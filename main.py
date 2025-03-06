@@ -8,22 +8,15 @@ import matplotlib.pyplot as plt
 import envs
 import microutils
 from scipy.interpolate import interp1d
-from stable_baselines3.common.env_util import make_vec_env
-from stable_baselines3.common.callbacks import EvalCallback
-from stable_baselines3.common.vec_env import VecMonitor
-from stable_baselines3.common.monitor import Monitor
 
 
 def main(args):
     # create interpolated power profiles to match the Holos benchmark
     args.plotting
-    args.inl_hpc
-    args.num_envs
     args.timesteps
     
     training_profile = interp1d([  0,  15, 30, 70, 100, 140, 160, 195, 200], # times (s)
                                 [100, 100, 80, 55,  55,  70,  70,  80,  80]) # power (SPU)
-
     lowpower_profile = interp1d([  0,   5, 100, 200], # times (s)
                                 [100, 100,  40,  90]) # power (SPU)
     longtest_profile = interp1d([  0,  2000, 3000, 3500, 6000, 10000, 12000, 12500, 14000, 16000, 18000, 20000], # times (s)
@@ -54,6 +47,7 @@ def main(args):
     testing_kwargs = {'profile': test_profile,
                      'episode_length': 200,
                      'run_path': run_folder,
+                     'valid_maskings': (args.disabled_drums,),
                      'train_mode': False}
 
     # run the PID loop
@@ -78,8 +72,7 @@ def main(args):
     # if a model has already been trained, don't re-train
     if not model_folder.exists():
         microutils.train_rl(envs.HolosSingle, training_kwargs,
-                            total_timesteps=args.timesteps,
-                            n_envs=args.num_envs)
+                            total_timesteps=args.timesteps, n_envs=args.n_envs)
     # test trained model
     single_action_test_history = microutils.test_trained_rl(envs.HolosSingle, testing_kwargs)
     if args.plotting:
@@ -97,8 +90,7 @@ def main(args):
     # if a model has already been trained, don't re-train
     if not model_folder.exists():
         microutils.train_rl(envs.HolosMulti, training_kwargs,
-                            total_timesteps=args.timesteps,
-                            n_envs=args.num_envs)
+                            total_timesteps=args.timesteps, n_envs=args.n_envs)
     multi_drum_test_history = microutils.test_trained_rl(envs.HolosMulti, testing_kwargs)
     if args.plotting:
         microutils.plot_history(multi_drum_test_history)
@@ -117,8 +109,7 @@ def main(args):
         microutils.train_rl(envs.HolosMulti,
                             {**training_kwargs,
                              'symmetry_reward': True},
-                            total_timesteps=args.timesteps,
-                            n_envs=args.num_envs)
+                            total_timesteps=args.timesteps, n_envs=args.n_envs)
     multi_symmetric_test_history = microutils.test_trained_rl(envs.HolosMulti,
                                                               {**testing_kwargs,
                                                               'symmetry_reward': True})
@@ -134,13 +125,11 @@ def main(args):
     training_kwargs['run_path'] = run_folder
     training_kwargs['valid_maskings'] = (0,1,2,3)
     testing_kwargs['run_path'] = run_folder
-    testing_kwargs['valid_maskings'] = (0,)
     model_folder = run_folder / 'models/'
     # if a model has already been trained, don't re-train
     if not model_folder.exists():
         microutils.train_marl(envs.HolosMARL, training_kwargs,
-                              total_timesteps=(args.timesteps * 8),
-                              n_envs=args.num_envs)
+                              total_timesteps=(args.timesteps * 8), n_envs=args.n_envs)
     marl_test_history = microutils.test_trained_marl(envs.HolosMARL, testing_kwargs)
     if args.plotting:
         microutils.plot_history(marl_test_history)
@@ -148,15 +137,15 @@ def main(args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-n', '--num_envs', type=int, default=6,
-                        help='Number of environments to parallelize training over')
-    parser.add_argument('-c', '--inl_hpc', action='store_true',
-                        help='Use SubprocVecEnv if on an HPC cluster')
     parser.add_argument('-i', '--plotting', action='store_true',
                         help='Plot interactive, intermediate results')
     parser.add_argument('-p', '--test_profile', type=str, default='test',
                         help='Profile to use for testing (test, train, longtest, lowpower)')
     parser.add_argument('-t', '--timesteps', type=int, default=2_000_000,
                         help='Number of timesteps to train for')
+    parser.add_argument('-d', '--disabled_drums', type=int, default=0,
+                        help='Number of drums to disable during testing')
+    parser.add_argument('-n', '--n_envs', type=int, default=10,
+                        help='Number of environments to use for training')
     args = parser.parse_args()
     main(args)

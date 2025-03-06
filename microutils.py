@@ -8,7 +8,7 @@ import envs
 import os
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback
-from stable_baselines3.common.vec_env import VecMonitor, SubprocVecEnv
+from stable_baselines3.common.vec_env import VecMonitor
 from stable_baselines3.common.monitor import Monitor
 import stable_baselines3 as sb3
 import supersuit as ss
@@ -133,19 +133,13 @@ def plot_history(history: pd.DataFrame):
     plt.show()
 
 
-def train_rl(env_type, env_kwargs, total_timesteps=2_000_000, n_envs=6,
-             hpc=False):
+def train_rl(env_type, env_kwargs, total_timesteps=2_000_000, n_envs=10):
     run_folder = env_kwargs['run_path']
     model_folder = run_folder / 'models/'
     model_folder.mkdir(exist_ok=True)
     log_dir = run_folder / 'logs/'
-    if hpc:
-        vec_env = make_vec_env(env_type, n_envs=n_envs,
-                                env_kwargs=env_kwargs,
-                                vec_env_cls=SubprocVecEnv)
-    else:
-        vec_env = make_vec_env(env_type, n_envs=n_envs,
-                                env_kwargs=env_kwargs)
+    vec_env = make_vec_env(env_type, n_envs=n_envs,
+                            env_kwargs=env_kwargs)
     vec_env = VecMonitor(vec_env,
                         filename=str(log_dir / 'vec'))
     model = sb3.PPO('MultiInputPolicy', vec_env, verbose=1,
@@ -188,7 +182,7 @@ def test_trained_rl(env_type: type, env_kwargs: dict) -> pd.DataFrame:
     return history
 
 
-def train_marl(env_type, env_kwargs, total_timesteps=40_000_000, n_envs=6):
+def train_marl(env_type, env_kwargs, total_timesteps=40_000_000, n_envs=10):
     run_folder = env_kwargs['run_path']
     model_folder = run_folder / 'models/'
     model_folder.mkdir(exist_ok=True)
