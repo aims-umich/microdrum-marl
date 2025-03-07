@@ -12,4 +12,5 @@ wheels/
 # project specific
 archive/
 runs/
+graphs/
 scrap.py
