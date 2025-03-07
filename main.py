@@ -51,6 +51,7 @@ def main(args):
     single_folder.mkdir(exist_ok=True, parents=True)
     model_folder = single_folder / 'models/'
     if not model_folder.exists():  # if a model has already been trained, don't re-train
+        print('Training Single Action RL...')
         training_kwargs['run_path'] = single_folder
         microutils.train_rl(envs.HolosSingle, training_kwargs,
                             total_timesteps=args.timesteps, n_envs=args.n_envs)
@@ -62,6 +63,7 @@ def main(args):
     innoculated_folder.mkdir(exist_ok=True, parents=True)
     model_folder = innoculated_folder / 'models/'
     if not model_folder.exists():  # if a model has already been trained, don't re-train
+        print('Training Single Action Innoculated RL...')
         training_kwargs['run_path'] = innoculated_folder
         training_kwargs['noise'] = 0.02  # 2 SPU standard deviation of measurement noise
         microutils.train_rl(envs.HolosSingle, training_kwargs,
@@ -74,6 +76,7 @@ def main(args):
     multi_folder.mkdir(exist_ok=True, parents=True)
     model_folder = multi_folder / 'models/'
     if not model_folder.exists():  # if a model has already been trained, don't re-train
+        print('Training Multi Action RL...')
         training_kwargs['run_path'] = multi_folder
         # training_kwargs['valid_maskings'] = (0,1,2,3)  # disable up to three drums at random
         microutils.train_rl(envs.HolosMulti, training_kwargs,
@@ -86,6 +89,7 @@ def main(args):
     symmetric_folder.mkdir(exist_ok=True, parents=True)
     model_folder = symmetric_folder / 'models/'
     if not model_folder.exists():  # if a model has already been trained, don't re-train
+        print('Training Multi Action RL (Symmetric)...')
         training_kwargs['run_path'] = symmetric_folder
         # training_kwargs['valid_maskings'] = (0,1,2,3)  # disable up to three drums at random
         microutils.train_rl(envs.HolosMulti,
@@ -100,6 +104,7 @@ def main(args):
     marl_folder.mkdir(exist_ok=True, parents=True)
     model_folder = marl_folder / 'models/'
     if not model_folder.exists():
+        print('Training Multi Action RL (MARL)...')
         training_kwargs['run_path'] = marl_folder
         # training_kwargs['valid_maskings'] = (0,1,2,3)  # disable up to three drums at random
         microutils.train_marl(envs.HolosMARL, training_kwargs,
