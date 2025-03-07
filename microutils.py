@@ -65,6 +65,17 @@ def pid_loop(single_env):
     single_env.render()
 
 
+def test_pid(env_type: type, env_kwargs: dict) -> pd.DataFrame:
+    run_folder = env_kwargs['run_path']
+    test_env = env_type(**env_kwargs)
+    pid_loop(test_env)
+    history_path = find_latest_file(run_folder, pattern='run_history*.csv')
+    history = load_history(history_path)
+    mae, iae, control_effort = calc_metrics(history)
+    print(f'{run_folder.name} - MAE: {mae}, IAE: {iae}, Control Effort: {control_effort}')
+    return history
+
+
 def tune_pid(profile, episode_length=200):
     run_folder = Path.cwd() / 'runs' / 'pid_train'
     run_folder.mkdir(exist_ok=True, parents=True)
@@ -123,14 +134,17 @@ def calc_metrics(history: pd.DataFrame):
     return mean_absolute_error, integral_absolute_error, control_effort
 
 
-def plot_history(history: pd.DataFrame):
+def plot_history(save_path: Path, data_list: list, y_label: str):
+    # format: list of tuples with history (pd.DataFrame), qoi (str), and label (str)
     plt.clf()
-    plt.plot(history['time'], history['actual_power'])
-    plt.plot(history['time'], history['desired_power'])
+    labels = []
+    for history, qoi, label in data_list:
+        plt.plot(history['time'], history[qoi])
+        labels.append(label)
     plt.xlabel('Time (s)')
-    plt.ylabel('Power (SPU)')
-    plt.title('Power vs. Time')
-    plt.show()
+    plt.ylabel(y_label)
+    plt.legend(labels)
+    plt.savefig(save_path)
 
 
 def train_rl(env_type, env_kwargs, total_timesteps=2_000_000, n_envs=10):
