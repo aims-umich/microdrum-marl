@@ -35,8 +35,8 @@ class HolosPK:
     M_m = 11573  # mass of moderator
     M_c = 500  # mass of coolant
     heat_f = 0.96  # q in paper, fraction of heat deposited in fuel
-    Tf0 = 832.4
-    Tm0 = 830.22  # MPACT paper
+    Tf0 = 832.4  # MPACT paper in K
+    Tm0 = 830.22  # MPACT paper in K
     T_in = 795.47  # computed to make initial conditions at steady state
     T_out = 1106  # sooyoung's code
     Tc0 = 814.35  # computed to make initial conditions at steady state
@@ -165,7 +165,6 @@ class HolosMulti(gym.Env):
         self.y = self.pke.get_initial_conditions()
         current_power, *_ = self.y
         assert current_power == 1, 'current code assumes start at full power steady state'
-        self.history = [[self.time, *self.drum_angles, current_desired_power, *self.y]]
 
         num_masks = np.random.choice(self.valid_maskings)
         self.masks = np.ones(8)
@@ -175,10 +174,12 @@ class HolosMulti(gym.Env):
 
         next_desired_power = self.profile(self.time + 1)
         fuzz = np.random.normal(0, self.noise)
+        fuzzed = current_power + fuzz
+        self.history = [[self.time, *self.drum_angles, fuzzed, current_desired_power, *self.y]]
         observation = {
             "drum_angles": self.drum_angles / 180,  # convert to 0 to 1 box space
-            "power": np.array([current_power + fuzz]),
-            "last_power": np.array([current_power]),
+            "power": np.array([fuzzed]),
+            "last_power": np.array([fuzzed]),
             "next_desired_power": np.array([next_desired_power / 100]),
         }
 
@@ -210,14 +211,15 @@ class HolosMulti(gym.Env):
 
         current_power, *_ = self.y
         assert current_power >= 0 and current_power <= 2, 'power out of reasonable bounds'
-        self.history.append([self.time, *self.drum_angles, current_desired_power, *self.y])
-        assert len(self.history) == self.time + 1, 'history length mismatch'
         next_desired_power = self.profile(self.time + 1)
         fuzz = np.random.normal(0, self.noise)
+        fuzzed = current_power + fuzz
+        self.history.append([self.time, *self.drum_angles, fuzzed, current_desired_power, *self.y])
+        assert len(self.history) == self.time + 1, 'history length mismatch'
         observation = {
             "drum_angles": self.drum_angles / 180,  # convert to 0-1 box space
-            "power": np.array([current_power + fuzz]),
-            "last_power": np.array([self.history[-2][10]]),  # 10 is the actual power index
+            "power": np.array([fuzzed]),
+            "last_power": np.array([self.history[-2][9]]),  # 9 is the measured power index
             "next_desired_power": np.array([next_desired_power / 100]),  # convert to 0-1 box space
         }
 
@@ -254,10 +256,11 @@ class HolosMulti(gym.Env):
     def render(self, mode='human'):
         run_history = np.array(self.history)
         column_names = ['time', 'drum_1', 'drum_2', 'drum_3', 'drum_4',
-                        'drum_5', 'drum_6', 'drum_7', 'drum_8',
+                        'drum_5', 'drum_6', 'drum_7', 'drum_8', 'measured_power',
                         'desired_power', 'actual_power', 'c1', 'c2', 'c3',
                         'c4', 'c5', 'c6', 'Tf', 'Tm', 'Tc', 'Xe', 'I']
         df = pd.DataFrame(run_history, columns=column_names)
+        df['diff'] = df['actual_power'] - df['desired_power']
         assert df['actual_power'][0] == 1, 'steady state initial power value should be 100'
         assert df['drum_1'][0] == 77.8, 'steady state initial drum angle should be 77.8'
         self.history = df
