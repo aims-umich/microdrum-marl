@@ -65,6 +65,16 @@ def main(args):
     if not model_folder.exists():  # if a model has already been trained, don't re-train
         print('Training Single Action Innoculated RL...')
         training_kwargs['run_path'] = innoculated_folder
+        training_kwargs['noise'] = 0.01  # 2 SPU standard deviation of measurement noise
+        microutils.train_rl(envs.HolosSingle, training_kwargs,
+                            total_timesteps=args.timesteps, n_envs=args.n_envs)
+
+    innoculated2_folder = Path.cwd() / 'runs' / 'single_action_innoculated2'
+    innoculated2_folder.mkdir(exist_ok=True, parents=True)
+    model_folder = innoculated2_folder / 'models/'
+    if not model_folder.exists():  # if a model has already been trained, don't re-train
+        print('Training Single Action Innoculated RL...')
+        training_kwargs['run_path'] = innoculated2_folder
         training_kwargs['noise'] = 0.02  # 2 SPU standard deviation of measurement noise
         microutils.train_rl(envs.HolosSingle, training_kwargs,
                             total_timesteps=args.timesteps, n_envs=args.n_envs)
@@ -163,8 +173,8 @@ def main(args):
     marl_test_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
                                                                       'run_path': marl_folder})
                                                 
-    # plot comparisons
-    ###################
+    # plot comparisons pid vs single agent
+    ######################################
     plot_path = graph_path / f'2_{args.test_profile}-power.png'
     data_list = [(pid_test_history, 'desired_power', 'desired power'),
                  (pid_test_history, 'actual_power', 'pid'),
@@ -176,7 +186,8 @@ def main(args):
                  (single_test_history, 'diff', 'rl')]
     microutils.plot_history(plot_path, data_list, 'Power Difference (SPU)')
 
-
+    # plot comparisons multi-action vs symmetric vs marl
+    ####################################################
     plot_path = graph_path / f'3_{args.test_profile}-power.png'
     data_list = [(pid_test_history, 'desired_power', 'desired power'),
                  (multi_test_history, 'actual_power', 'multi-action'),
@@ -186,9 +197,41 @@ def main(args):
 
     plot_path = graph_path / f'3_{args.test_profile}-diff.png'
     data_list = [(multi_test_history, 'diff', 'multi-action'),
-                #  (symmetric_test_history, 'diff', 'symmetric'),
+                 (symmetric_test_history, 'diff', 'symmetric'),
                  (marl_test_history, 'diff', 'marl')]
     microutils.plot_history(plot_path, data_list, 'Power Difference (SPU)')
+
+    # plot training curves multi-action vs symmetric vs marl
+    ########################################################
+    multi_logs_path = multi_folder / 'logs/PPO_1'
+    symmetric_logs_path = symmetric_folder / 'logs/PPO_1'
+    marl_logs_path = marl_folder / 'logs/PPO_1'
+
+    multi_ep_len = pd.read_csv(multi_logs_path / 'ep_len_mean.csv')
+    symmetric_ep_len = pd.read_csv(symmetric_logs_path / 'ep_len_mean.csv')
+    marl_ep_len = pd.read_csv(marl_logs_path / 'ep_len_mean.csv')
+    marl_ep_len['Step'] = marl_ep_len['Step'] / 8  # normalize by point kinetics simulations run
+    plt.clf()
+    plt.plot(multi_ep_len['Step'], multi_ep_len['Value'], label='multi-action')
+    plt.plot(symmetric_ep_len['Step'], symmetric_ep_len['Value'], label='symmetric')
+    plt.plot(marl_ep_len['Step'], marl_ep_len['Value'], label='marl')
+    plt.xlabel('Environment timesteps')
+    plt.ylabel('Episode length (s)')
+    plt.legend()
+    plt.savefig(graph_path / f'4_training-curve-ep-len.png')
+
+    multi_ep_rew = pd.read_csv(multi_logs_path / 'ep_rew_mean.csv')
+    symmetric_ep_rew = pd.read_csv(symmetric_logs_path / 'ep_rew_mean.csv')
+    marl_ep_rew = pd.read_csv(marl_logs_path / 'ep_rew_mean.csv')
+    marl_ep_rew['Step'] = marl_ep_rew['Step'] / 8  # normalize by point kinetics simulations run
+    plt.clf()
+    plt.plot(multi_ep_rew['Step'], multi_ep_rew['Value'], label='multi-action')
+    plt.plot(symmetric_ep_rew['Step'], symmetric_ep_rew['Value'], label='symmetric')
+    plt.plot(marl_ep_rew['Step'], marl_ep_rew['Value'], label='marl')
+    plt.xlabel('Environment timesteps')
+    plt.ylabel('Episode reward')
+    plt.legend()
+    plt.savefig(graph_path / f'4_training-curve-ep-rew.png')
 
 
 if __name__ == '__main__':
