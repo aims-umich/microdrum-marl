@@ -63,7 +63,7 @@ def main(args):
     model_folder = innoculated_folder / 'models/'
     if not model_folder.exists():  # if a model has already been trained, don't re-train
         training_kwargs['run_path'] = innoculated_folder
-        training_kwargs['noise'] = 0.01  # 2 SPU standard deviation of measurement noise
+        training_kwargs['noise'] = 0.02  # 2 SPU standard deviation of measurement noise
         microutils.train_rl(envs.HolosSingle, training_kwargs,
                             total_timesteps=args.timesteps, n_envs=args.n_envs)
 
