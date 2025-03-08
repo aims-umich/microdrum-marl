@@ -14,12 +14,12 @@ def main(args):
     # create interpolated power profiles
     training_profile = interp1d([  0,  15, 30, 70, 100, 140, 160, 195, 200], # times (s)
                                 [100, 100, 80, 55,  55,  70,  70,  80,  80]) # power (SPU)
-    lowpower_profile = interp1d([  0,   5, 100, 200], # times (s)
-                                [100, 100,  40,  90]) # power (SPU)
-    longtest_profile = interp1d([  0,  2000, 3000, 3500, 6000, 10000, 12000, 12500, 14000, 16000, 18000, 20000], # times (s)
-                                [100,   100,   90,   90,   45,    45,    65,    65,    80,  80,  95,  95]) # power (SPU)
     testing_profile = interp1d([  0,  10, 70, 100, 115, 125, 150, 180, 200], # times (s)
-                               [100, 100, 45, 45,   65,  65,  50,  80,  80]) # power (SPU)
+                               [100, 100, 50,  50,   65,  65,  50,  80,  80]) # power (SPU)
+    lowpower_profile = interp1d([  0,   5, 100, 200], # times (s)
+                                [100, 100,  30,  90]) # power (SPU)
+    longtest_profile = interp1d([  0,  2000, 3000, 3500, 6000, 10000, 10020, 12500, 14000, 16000, 16010, 20000], # times (s)
+                                [100,   100,   90,   90,   45,    45,    65,    65,    80,    80,  95,  95]) # power (SPU)
 
     match args.test_profile:
         case 'longtest':
@@ -28,7 +28,7 @@ def main(args):
         case 'lowpower':
             test_profile = lowpower_profile
             episode_length = 200
-        case 'training':
+        case 'train':
             test_profile = training_profile
             episode_length = 200
         case _:
@@ -47,7 +47,7 @@ def main(args):
     #############################
     # Single Action RL Training #
     #############################
-    single_folder = Path.cwd() / 'runs' / 'single_action_rl'
+    single_folder = Path.cwd() / 'runs' / 'single-rl'
     single_folder.mkdir(exist_ok=True, parents=True)
     model_folder = single_folder / 'models/'
     if not model_folder.exists():  # if a model has already been trained, don't re-train
@@ -59,22 +59,32 @@ def main(args):
     #########################################
     # Single Action Innoculated RL Training #
     #########################################
-    innoculated_folder = Path.cwd() / 'runs' / 'single_action_innoculated'
-    innoculated_folder.mkdir(exist_ok=True, parents=True)
-    model_folder = innoculated_folder / 'models/'
+    noise_folder = Path.cwd() / 'runs' / 'noise-rl'
+    noise_folder.mkdir(exist_ok=True, parents=True)
+    model_folder = noise_folder / 'models/'
     if not model_folder.exists():  # if a model has already been trained, don't re-train
         print('Training Single Action Innoculated RL...')
-        training_kwargs['run_path'] = innoculated_folder
-        training_kwargs['noise'] = 0.01  # 2 SPU standard deviation of measurement noise
+        training_kwargs['run_path'] = noise_folder
+        training_kwargs['noise'] = 0.01  # 1 SPU standard deviation of measurement noise
         microutils.train_rl(envs.HolosSingle, training_kwargs,
                             total_timesteps=args.timesteps, n_envs=args.n_envs)
 
-    innoculated2_folder = Path.cwd() / 'runs' / 'single_action_innoculated2'
-    innoculated2_folder.mkdir(exist_ok=True, parents=True)
-    model_folder = innoculated2_folder / 'models/'
+    noise01_folder = Path.cwd() / 'runs' / 'noise-rl01'
+    noise01_folder.mkdir(exist_ok=True, parents=True)
+    model_folder = noise01_folder / 'models/'
     if not model_folder.exists():  # if a model has already been trained, don't re-train
         print('Training Single Action Innoculated RL...')
-        training_kwargs['run_path'] = innoculated2_folder
+        training_kwargs['run_path'] = noise01_folder
+        training_kwargs['noise'] = 0.001  # .1 SPU standard deviation of measurement noise
+        microutils.train_rl(envs.HolosSingle, training_kwargs,
+                            total_timesteps=args.timesteps, n_envs=args.n_envs)
+
+    noise2_folder = Path.cwd() / 'runs' / 'noise-rl2'
+    noise2_folder.mkdir(exist_ok=True, parents=True)
+    model_folder = noise2_folder / 'models/'
+    if not model_folder.exists():  # if a model has already been trained, don't re-train
+        print('Training Single Action Innoculated RL...')
+        training_kwargs['run_path'] = noise2_folder
         training_kwargs['noise'] = 0.02  # 2 SPU standard deviation of measurement noise
         microutils.train_rl(envs.HolosSingle, training_kwargs,
                             total_timesteps=args.timesteps, n_envs=args.n_envs)
@@ -82,7 +92,7 @@ def main(args):
     ##########################
     # Multi Drum RL Training #
     ##########################
-    multi_folder = Path.cwd() / 'runs' / 'multi_action_rl'
+    multi_folder = Path.cwd() / 'runs' / 'multi-rl'
     multi_folder.mkdir(exist_ok=True, parents=True)
     model_folder = multi_folder / 'models/'
     if not model_folder.exists():  # if a model has already been trained, don't re-train
@@ -95,7 +105,7 @@ def main(args):
     ######################################
     # Multi Drum RL (symmetric) Training #
     ######################################
-    symmetric_folder = Path.cwd() / 'runs' / 'multi_action_rl_symmetric'
+    symmetric_folder = Path.cwd() / 'runs' / 'symmetric-rl'
     symmetric_folder.mkdir(exist_ok=True, parents=True)
     model_folder = symmetric_folder / 'models/'
     if not model_folder.exists():  # if a model has already been trained, don't re-train
@@ -172,6 +182,8 @@ def main(args):
                                                         'train_mode': True})  # necessary to cutoff runaway power
     marl_test_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
                                                                       'run_path': marl_folder})
+    single_marl_test_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
+                                                                            'run_path': single_folder})
                                                 
     # plot comparisons pid vs single agent
     ######################################
@@ -192,14 +204,49 @@ def main(args):
     data_list = [(pid_test_history, 'desired_power', 'desired power'),
                  (multi_test_history, 'actual_power', 'multi-action'),
                  (symmetric_test_history, 'actual_power', 'symmetric'),
-                 (marl_test_history, 'actual_power', 'marl')]
+                 (marl_test_history, 'actual_power', 'marl'),
+                 (single_marl_test_history, 'actual_power', 'singly trained marl')]
     microutils.plot_history(plot_path, data_list, 'Power (SPU)')
 
     plot_path = graph_path / f'3_{args.test_profile}-diff.png'
     data_list = [(multi_test_history, 'diff', 'multi-action'),
                  (symmetric_test_history, 'diff', 'symmetric'),
-                 (marl_test_history, 'diff', 'marl')]
+                 (marl_test_history, 'diff', 'marl'),
+                 (single_marl_test_history, 'diff', 'singly trained marl')]
     microutils.plot_history(plot_path, data_list, 'Power Difference (SPU)')
+
+    plot_path = graph_path / f'3_{args.test_profile}-multi-angle.png'
+    data_list = [(multi_test_history, 'drum_1', 'drum 1'),
+                 (multi_test_history, 'drum_2', 'drum 2'),
+                 (multi_test_history, 'drum_3', 'drum 3'),
+                 (multi_test_history, 'drum_4', 'drum 4'),
+                 (multi_test_history, 'drum_5', 'drum 5'),
+                 (multi_test_history, 'drum_6', 'drum 6'),
+                 (multi_test_history, 'drum_7', 'drum 7'),
+                 (multi_test_history, 'drum_8', 'drum 8'),]
+    microutils.plot_history(plot_path, data_list, 'Control Drum Position (°)')
+
+    plot_path = graph_path / f'3_{args.test_profile}-marl-angle.png'
+    data_list = [(marl_test_history, 'drum_1', 'drum 1'),
+                 (marl_test_history, 'drum_2', 'drum 2'),
+                 (marl_test_history, 'drum_3', 'drum 3'),
+                 (marl_test_history, 'drum_4', 'drum 4'),
+                 (marl_test_history, 'drum_5', 'drum 5'),
+                 (marl_test_history, 'drum_6', 'drum 6'),
+                 (marl_test_history, 'drum_7', 'drum 7'),
+                 (marl_test_history, 'drum_8', 'drum 8'),]
+    microutils.plot_history(plot_path, data_list, 'Control Drum Position (°)')
+
+    plot_path = graph_path / f'3_{args.test_profile}-single-marl-angle.png'
+    data_list = [(single_marl_test_history, 'drum_1', 'drum 1'),
+                 (single_marl_test_history, 'drum_2', 'drum 2'),
+                 (single_marl_test_history, 'drum_3', 'drum 3'),
+                 (single_marl_test_history, 'drum_4', 'drum 4'),
+                 (single_marl_test_history, 'drum_5', 'drum 5'),
+                 (single_marl_test_history, 'drum_6', 'drum 6'),
+                 (single_marl_test_history, 'drum_7', 'drum 7'),
+                 (single_marl_test_history, 'drum_8', 'drum 8'),]
+    microutils.plot_history(plot_path, data_list, 'Control Drum Position (°)')
 
     # plot training curves multi-action vs symmetric vs marl
     ########################################################
@@ -232,6 +279,34 @@ def main(args):
     plt.ylabel('Episode reward')
     plt.legend()
     plt.savefig(graph_path / f'4_training-curve-ep-rew.png')
+
+    # plot noise graphs
+    ####################
+    single_1noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
+                                                                          'run_path': single_folder,
+                                                                          'noise': 0.01})
+    single_2noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
+                                                                          'run_path': single_folder,
+                                                                          'noise': 0.02})
+    single_3noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
+                                                                          'run_path': single_folder,
+                                                                          'noise': 0.03})
+    # innoculated2_2noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
+    #                                                                             'run_path': innoculated2_folder,
+    #                                                                             'noise': 0.03})
+    noise_path = graph_path / '5_noise-power-2SPU.png'
+    data_list = [(single_1noise_history, 'desired_power', 'desired power'),
+                 (single_1noise_history, 'actual_power', '1 SPU noise'),
+                 (single_2noise_history, 'actual_power', '2 SPU noise'),
+                 (single_3noise_history, 'actual_power', '3 SPU noise')]
+    microutils.plot_history(noise_path, data_list, 'Power (SPU)')
+
+    noise_path = graph_path / '5_noise-diff-2SPU.png'   
+    data_list = [(single_1noise_history, 'diff', '1 SPU noise'),
+                 (single_2noise_history, 'diff', '2 SPU noise'),
+                 (single_3noise_history, 'diff', '3 SPU noise')]
+    microutils.plot_history(noise_path, data_list, 'Power Difference (SPU)')
+
 
 
 if __name__ == '__main__':
