@@ -71,8 +71,8 @@ def test_pid(env_type: type, env_kwargs: dict) -> pd.DataFrame:
     pid_loop(test_env)
     history_path = find_latest_file(run_folder, pattern='run_history*.csv')
     history = load_history(history_path)
-    mae, iae, control_effort = calc_metrics(history)
-    print(f'{run_folder.name} - MAE: {mae}, IAE: {iae}, Control Effort: {control_effort}')
+    mae, cae, control_effort, mean_control_effort = calc_metrics(history)
+    print(f'{run_folder.name} - MAE: {mae}, CAE: {cae}, Control Effort: {control_effort}, Mean Control Effort: {mean_control_effort}')
     return history
 
 
@@ -97,12 +97,12 @@ def tune_pid(profile, episode_length=200):
                 print(f'IAE: {fake_iae}, gains: {p_gain}, {i_gain}, {d_gain}')
                 return fake_iae
         holos_env.render()
-        _, iae, _ = calc_metrics(holos_env.multi_env.history)
-        print(f'IAE: {iae}, gains: {p_gain}, {i_gain}, {d_gain}')
-        return iae
+        _, cae, _, _ = calc_metrics(holos_env.multi_env.history)
+        print(f'CAE: {cae}, gains: {p_gain}, {i_gain}, {d_gain}')
+        return cae
     
     # return differential_evolution(pid_objective, [(0, 1), (0, 1), (0, 1)])
-    return minimize(pid_objective, [0.08, 0, 0.3], bounds=[(0, 5), (0, 5), (0, 5)])
+    return minimize(pid_objective, [0.08, 0, 0.3], bounds=[(0, 5), (0, 5), (0, 5)], method='SLSQP')
 
 
 def find_latest_file(folder_path: Path, pattern: str='*') -> Path:
@@ -126,12 +126,13 @@ def calc_metrics(history: pd.DataFrame):
     error = history['desired_power'] - history['actual_power']
     absolute_error = np.abs(error)
     mean_absolute_error = np.mean(absolute_error)
-    integral_absolute_error = np.sum(absolute_error)
+    cumulative_absolute_error = np.sum(absolute_error)
     drum_angles = history[['drum_1', 'drum_2', 'drum_3', 'drum_4', 'drum_5', 'drum_6', 'drum_7', 'drum_8']]
     drum_speeds = np.diff(drum_angles, axis=0)
     absolute_drum_speeds = np.abs(drum_speeds)
     control_effort = np.sum(absolute_drum_speeds)
-    return mean_absolute_error, integral_absolute_error, control_effort
+    mean_control_effort = control_effort / len(history)
+    return mean_absolute_error, cumulative_absolute_error, control_effort, mean_control_effort
 
 
 def plot_history(save_path: Path, data_list: list, y_label: str):
@@ -191,8 +192,8 @@ def test_trained_rl(env_type: type, env_kwargs: dict) -> pd.DataFrame:
     rl_control_loop(model, test_env)
     history_path = find_latest_file(run_folder, pattern='run_history*.csv')
     history = load_history(history_path)
-    mae, iae, control_effort = calc_metrics(history)
-    print(f'{run_folder.name} - MAE: {mae}, IAE: {iae}, Control Effort: {control_effort}')
+    mae, cae, control_effort, mean_control_effort = calc_metrics(history)
+    print(f'{run_folder.name} - MAE: {mae}, CAE: {cae}, Control Effort: {control_effort}, Mean Control Effort: {mean_control_effort}')
     return history
 
 
@@ -238,8 +239,8 @@ def test_trained_marl(env_type, env_kwargs):
     marl_control_loop(model, test_env)
     history_path = find_latest_file(run_folder, pattern='run_history*.csv')
     history = load_history(history_path)
-    mae, iae, control_effort = calc_metrics(history)
-    print(f'{run_folder.name} - MAE: {mae}, IAE: {iae}, Control Effort: {control_effort}')
+    mae, cae, control_effort, mean_control_effort = calc_metrics(history)
+    print(f'{run_folder.name} - MAE: {mae}, CAE: {cae}, Control Effort: {control_effort}, Mean Control Effort: {mean_control_effort}')
     return history
 
 
