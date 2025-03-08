@@ -24,7 +24,7 @@ class HolosPK:
     lambda_I = 2.87e-5  # decay of iodine s^-1
     Sigma_f = 0.1117  # macro xsec fission m^-1, worked out backwards from estimated values in Choi 2020 p. 28 Fig.15c
     therm_n_vel = 2.19e3  # thermal neutron velocity m/s according to Wikipedia on neutron temp (0.25 eV)
-    neutron_lifetime = 1.68e-3  # s
+    neutron_lifetime = 1.68e-3  # s, Lambda in paper
     beta = 0.004801
     betas = np.array([1.42481E-04, 9.24281E-04, 7.79956E-04, 2.06583E-03, 6.71175E-04, 2.17806E-04])
     lambdas = np.array([1.272E-02, 3.174E-02, 1.160E-01, 3.110E-01, 1.400E+00, 3.870E+00])
@@ -43,13 +43,13 @@ class HolosPK:
     K_fm = 1.17e6  # W/K
     K_mc = 2.16e5  # W/K
     M_dot = 17.5  # kg/s
-    alpha_f = -2.875e-5
-    alpha_m = -3.696e-5
-    alpha_c = 0.0
+    alpha_f = -2.875e-5  # K^-1
+    alpha_m = -3.696e-5  # K^-1
+    alpha_c = 0.0  # K^-1
     n_0 = 2.25e13  # m^-3
     P_r = 22e6  # rated power in Watts
     u0 = 77.8  # degrees, steady state full power drum angle (77.56 earlier)
-    rho_max = .00511  # max reactivity per drum (511 pcm)
+    rho_max = .00510  # max reactivity per drum (510 pcm)
 
     def __init__(self):
         # calculate steady state conditions and drum reactivity
@@ -88,7 +88,8 @@ class HolosPK:
         """Create a drum angle forcer for intermediate timesteps during a solve_ivp"""
         drum_forcers = []
         for i, drum_angle in enumerate(drum_angles):
-            drum_forcers.append(interp1d([0, time], [drum_angle, drum_angle + drum_action[i]]))
+            new_angle = np.clip(drum_angle + drum_action[i], 0, 180).item()  # can't go beyond limits
+            drum_forcers.append(interp1d([0, time], [drum_angle, new_angle]))
 
         assert len(drum_forcers) == len(drum_angles)
         return drum_forcers
@@ -205,7 +206,7 @@ class HolosMulti(gym.Env):
         sol = solve_ivp(self.pke.reactor_dae, [0, 1], self.y, args=drum_forcers)
         self.y = sol.y[:,-1]
         self.drum_angles += real_action
-        # assert self.drum_angles.min() >= 0 and self.drum_angles.max() <= 180, 'drum angles out of bounds'
+        self.drum_angles = np.clip(self.drum_angles, 0, 180)
         current_desired_power = self.profile(self.time) / 100
         self.time += 1
 
@@ -225,16 +226,15 @@ class HolosMulti(gym.Env):
 
         desired_power = self.profile(self.time) / 100
         reward, terminated = self.calc_reward(current_power, desired_power)
+        if current_power > 1.1:  # 110% power is way too much
+            terminated = True
         if self.symmetry_reward:
-            reward -= np.max(action) - np.min(action)
+            reward -= abs(np.max(action) - np.min(action))
         assert reward <= 2, 'max reward exceeded'
         truncated = False
         if self.time >= self.episode_length - 1:
             truncated = True
         info = {'latest': self.history[-1]}
-        if self.drum_angles.min() < 0 or self.drum_angles.max() > 180:
-            reward -= 100
-            terminated = True
 
         return observation, reward, terminated, truncated, info
 
@@ -247,7 +247,10 @@ class HolosMulti(gym.Env):
 
         # give a punish outside bounds if in train mode
         terminated = False
-        if self.train_mode and diff > 5:
+        if (self.train_mode and
+            (diff > 5
+            or self.drum_angles.min() <= 0
+            or self.drum_angles.max() >= 180)):
             reward -= 100
             terminated = True
 
@@ -260,7 +263,7 @@ class HolosMulti(gym.Env):
                         'desired_power', 'actual_power', 'c1', 'c2', 'c3',
                         'c4', 'c5', 'c6', 'Tf', 'Tm', 'Tc', 'Xe', 'I']
         df = pd.DataFrame(run_history, columns=column_names)
-        df['diff'] = df['actual_power'] - df['desired_power']
+        df['diff'] = (df['actual_power'] - df['desired_power']) * 100
         assert df['actual_power'][0] == 1, 'steady state initial power value should be 100'
         assert df['drum_1'][0] == 77.8, 'steady state initial drum angle should be 77.8'
         self.history = df
