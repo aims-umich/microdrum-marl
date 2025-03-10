@@ -77,8 +77,8 @@ class HolosPK:
     def calc_reactivity(self, y, drum_angles):
         _, _, _, _, _, _, _, Tf, Tm, _, Xe, _ = y
 
-        drum_reactivity = np.sum(self.rho_max * (1 - np.cos(np.deg2rad(drum_angles))) / 2 - self.rho_ss)
-        # drum_reactivity = np.sum(drum_angles - self.u0) * 30e-5
+        # drum_reactivity = np.sum(self.rho_max * (1 - np.cos(np.deg2rad(drum_angles))) / 2 - self.rho_ss)
+        drum_reactivity = np.sum(drum_angles - self.u0) * 3.25e-5
         assert drum_reactivity < self.rho_max, 'drum reactivity exceeds max reactivity'
         rho = (drum_reactivity
                + self.alpha_f * (Tf - self.Tf0)
