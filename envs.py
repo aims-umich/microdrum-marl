@@ -77,8 +77,8 @@ class HolosPK:
     def calc_reactivity(self, y, drum_angles):
         _, _, _, _, _, _, _, Tf, Tm, _, Xe, _ = y
 
-        # drum_reactivity = np.sum(self.rho_max * (1 - np.cos(np.deg2rad(drum_angles))) / 2 - self.rho_ss)
-        drum_reactivity = np.sum(drum_angles - self.u0) * 3.25e-5
+        drum_reactivity = np.sum(self.rho_max * (1 - np.cos(np.deg2rad(drum_angles))) / 2 - self.rho_ss)
+        # drum_reactivity = np.sum(drum_angles - self.u0) * 3.25e-5
         assert drum_reactivity < self.rho_max, 'drum reactivity exceeds max reactivity'
         rho = (drum_reactivity
                + self.alpha_f * (Tf - self.Tf0)
@@ -249,8 +249,8 @@ class HolosMulti(gym.Env):
             raise RuntimeError("Episode length exceeded")
         real_action = self.gym2real_action(action) * self.masks
         drum_forcers = self.pke.drum_forcing(self.drum_angles, real_action)
-        # sol = solve_ivp(self.pke.reactor_dae, [0, 1], self.y, args=drum_forcers)
-        sol = solve_ivp(self.pke.reactor_dae, [0, 1], self.y, args=drum_forcers, method=EulerSolve)
+        sol = solve_ivp(self.pke.reactor_dae, [0, 1], self.y, args=drum_forcers)
+        # sol = solve_ivp(self.pke.reactor_dae, [0, 1], self.y, args=drum_forcers, method=EulerSolve)
         self.y = sol.y[:,-1]
         self.drum_angles += real_action
         self.drum_angles = np.clip(self.drum_angles, 0, 180)
