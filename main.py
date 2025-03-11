@@ -9,11 +9,13 @@ import envs
 import microutils
 from scipy.interpolate import interp1d
 
+plt.style.use('tableau-colorblind10')
+
 
 def main(args):
     # create interpolated power profiles
-    training_profile = interp1d([  0,  15, 30, 70, 100, 140, 160, 195, 200], # times (s)
-                                [100, 100, 80, 55,  55,  70,  70,  80,  80]) # power (SPU)
+    training_profile = interp1d([  0,  10, 20  30, 50, 70, 120, 140, 160, 195, 200], # times (s)
+                                [100, 100, 98, 99, 80, 60,  60,  70,  70,  80,  80]) # power (SPU)
     testing_profile = interp1d([  0,  10, 70, 100, 115, 125, 150, 180, 200], # times (s)
                                [100, 100, 50,  50,   65,  65,  50,  80,  80]) # power (SPU)
     lowpower_profile = interp1d([  0,   5, 100, 200], # times (s)
@@ -130,6 +132,9 @@ def main(args):
         microutils.train_marl(envs.HolosMARL, training_kwargs,
                               total_timesteps=(args.timesteps * 8), n_envs=args.n_envs)
 
+        # marl_test_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
+        #                                                               'run_path': marl_folder})
+
 
     ####################
     # Plotting Figures #
@@ -137,38 +142,10 @@ def main(args):
     graph_path = Path.cwd() / 'graphs'
     graph_path.mkdir(exist_ok=True, parents=True)
 
-    # start with the PID benchmark, creating its own run folder
-    pid_folder = Path.cwd() / 'runs' / 'pid'
-    pid_folder.mkdir(exist_ok=True, parents=True)
-    training_kwargs['run_path'] = pid_folder
-    pid_train_history = microutils.test_pid(envs.HolosSingle, training_kwargs)
-
-    # Example profiles to validate environment and show train profile with PID
-    plot_path = graph_path / '1a_PID-train-power.png'
-    data_list = [(pid_train_history, 'desired_power', 'desired power'),
-                 (pid_train_history, 'actual_power', 'actual power')]
-    microutils.plot_history(plot_path, data_list, 'Power (SPU)')
-
-    plot_path = graph_path / '1b_PID-train-temp.png'
-    data_list = [(pid_train_history, 'Tf', 'fuel temp'),
-                 (pid_train_history, 'Tm', 'moderator temp'),
-                 (pid_train_history, 'Tc', 'coolant temp')]
-    microutils.plot_history(plot_path, data_list, 'Temperature (K)')
-
-    # TODO redo from scratch
-    plot_path = graph_path / '1c_PID-train-diff.png'
-    data_list = [(pid_train_history, 'diff', 'power difference')]
-    microutils.plot_history(plot_path, data_list, 'Power Difference (SPU)')
-
-    # TODO redo from scratch
-    plot_path = graph_path / '1d_PID-train-angle.png'
-    data_list = [(pid_train_history, 'drum_1', 'all drums')]
-    microutils.plot_history(plot_path, data_list, 'Control Drum Position (°)')
-
-
     # gather test histories
     #######################
     print(f'testing with {args.test_profile}:')
+    pid_folder = Path.cwd() / 'runs' / 'pid'
     pid_test_history = microutils.test_pid(envs.HolosSingle, {**testing_kwargs,
                                                               'run_path': pid_folder})
     single_test_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
@@ -182,78 +159,132 @@ def main(args):
                                                         'train_mode': True})  # necessary to cutoff runaway power
     marl_test_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
                                                                       'run_path': marl_folder})
-    single_marl_test_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
-                                                                            'run_path': single_folder})
-                                                
-    # plot comparisons pid vs single agent
-    ######################################
-    plot_path = graph_path / f'2_{args.test_profile}-power.png'
-    data_list = [(pid_test_history, 'desired_power', 'desired power'),
-                 (pid_test_history, 'actual_power', 'pid'),
-                 (single_test_history, 'actual_power', 'rl')]
-    microutils.plot_history(plot_path, data_list, 'Power (SPU)')
+    # single_marl_test_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
+    #                                                                         'run_path': single_folder})
 
-    plot_path = graph_path / f'2_{args.test_profile}-diff.png'
-    data_list = [(pid_test_history, 'diff', 'pid'),
-                 (single_test_history, 'diff', 'rl')]
-    microutils.plot_history(plot_path, data_list, 'Power Difference (SPU)')
+    # Graph 1: PID vs single-RL on test profile with temperature included
+    # ###################################################################
+    graph_1_path = graph_path / f'1-singletemp-{args.test_profile}.png'
+    plt.clf()
+    fig, axs = plt.subplots(5, 1, sharex=True, figsize=(10, 12)) # power, error, temps, drum speed, drum position
+    axs[0].plot(pid_test_history['time'], pid_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
+    axs[0].plot(pid_test_history['time'], pid_test_history['actual_power'], label='PID power', linestyle=':')
+    axs[0].plot(single_test_history['time'], single_test_history['actual_power'], label='Single-RL power', linestyle='--')
+    axs[0].legend()
+    axs[0].set_ylabel('Power (SPU)')
+    axs[1].plot(pid_test_history['time'], pid_test_history['diff'], label='PID error', linestyle=':')
+    axs[1].plot(single_test_history['time'], single_test_history['diff'], label='Single-RL error', linestyle='-')
+    axs[1].axhline(y=0, color='black', linestyle='--')
+    axs[1].legend()
+    axs[1].set_ylabel('Error (SPU)')
+    axs[2].plot(pid_test_history['time'], pid_test_history['Tf'], label='Fuel temperature')
+    axs[2].plot(pid_test_history['time'], pid_test_history['Tm'], label='Moderator temperature')
+    axs[2].plot(pid_test_history['time'], pid_test_history['Tc'], label='Coolant temperature')
+    axs[2].legend()
+    axs[2].set_ylabel('Temperature (deg C)')
+    axs[3].plot(pid_test_history['time'], np.insert(np.diff(pid_test_history['drum_1']), 0, 0), label='PID drum speed', linestyle=':')
+    axs[3].plot(single_test_history['time'], np.insert(np.diff(single_test_history['drum_1']), 0, 0), label='Single-RL drum speed', linestyle='-')
+    axs[3].legend()
+    axs[3].set_ylabel('Drum speed (degrees per second)')
+    axs[4].plot(pid_test_history['time'], pid_test_history['drum_1'], label='PID drum position', linestyle=':')
+    axs[4].plot(single_test_history['time'], single_test_history['drum_1'], label='Single-RL drum position', linestyle='-')
+    axs[4].legend()
+    axs[4].set_xlabel('Time (s)')
+    axs[4].set_ylabel('Drum position (degrees)')
+    fig.tight_layout()
+    fig.savefig(graph_1_path)
 
-    # plot comparisons multi-action vs symmetric vs marl
-    ####################################################
-    plot_path = graph_path / f'3_{args.test_profile}-power.png'
-    data_list = [(pid_test_history, 'desired_power', 'desired power'),
-                 (multi_test_history, 'actual_power', 'multi-action'),
-                 (symmetric_test_history, 'actual_power', 'symmetric'),
-                 (marl_test_history, 'actual_power', 'marl'),
-                 (single_marl_test_history, 'actual_power', 'singly trained marl')]
-    microutils.plot_history(plot_path, data_list, 'Power (SPU)')
+    # Graph 2: PID vs single-RL on test profile without temperature or drum position
+    # ##############################################################################
+    graph_2_path = graph_path / f'2-singlespeed-{args.test_profile}.png'
+    plt.clf()
+    fig, axs = plt.subplots(3, 1, sharex=True, figsize=(10, 7)) # power, error, drum speed
+    axs[0].plot(pid_test_history['time'], pid_test_history['desired_power'], label='Desired power', color='black', linestyle=':')
+    axs[0].plot(pid_test_history['time'], pid_test_history['actual_power'], label='PID power', linestyle='-.')
+    axs[0].plot(single_test_history['time'], single_test_history['actual_power'], label='Single-RL power', linestyle='-')
+    axs[0].legend()
+    axs[0].set_ylabel('Power (SPU)')
+    axs[1].plot(pid_test_history['time'], pid_test_history['diff'], label='PID error', linestyle=':')
+    axs[1].plot(single_test_history['time'], single_test_history['diff'], label='Single-RL error', linestyle='-')
+    axs[1].axhline(y=0, color='black', linestyle='--')
+    axs[1].legend()
+    axs[1].set_ylabel('Error (SPU)')
+    axs[2].plot(pid_test_history['time'], np.insert(np.diff(pid_test_history['drum_1']), 0, 0), label='PID drum speed', linestyle=':')
+    axs[2].plot(single_test_history['time'], np.insert(np.diff(single_test_history['drum_1']), 0, 0), label='Single-RL drum speed', linestyle='-')
+    axs[2].legend()
+    axs[2].set_xlabel('Time (s)')
+    axs[2].set_ylabel('Drum speed (degrees per second)')
+    fig.tight_layout()
+    fig.savefig(graph_2_path)
 
-    plot_path = graph_path / f'3_{args.test_profile}-diff.png'
-    data_list = [(multi_test_history, 'diff', 'multi-action'),
-                 (symmetric_test_history, 'diff', 'symmetric'),
-                 (marl_test_history, 'diff', 'marl'),
-                 (single_marl_test_history, 'diff', 'singly trained marl')]
-    microutils.plot_history(plot_path, data_list, 'Power Difference (SPU)')
+    # Graph 3: PID vs single-RL on test profile with drum position
+    # ############################################################
+    graph_3_path = graph_path / f'3-singleposition-{args.test_profile}.png'
+    plt.clf()
+    fig, axs = plt.subplots(3, 1, sharex=True, figsize=(10, 7)) # power, error, drum position
+    axs[0].plot(pid_test_history['time'], pid_test_history['desired_power'], label='Desired power', color='black', linestyle=':')
+    axs[0].plot(pid_test_history['time'], pid_test_history['actual_power'], label='PID power', linestyle='-.')
+    axs[0].plot(single_test_history['time'], single_test_history['actual_power'], label='Single-RL power', linestyle='--')
+    axs[0].legend()
+    axs[0].set_ylabel('Power (SPU)')
+    axs[1].plot(pid_test_history['time'], pid_test_history['diff'], label='PID error', linestyle=':')
+    axs[1].plot(single_test_history['time'], single_test_history['diff'], label='Single-RL error', linestyle='-')
+    axs[1].axhline(y=0, color='black', linestyle='--')
+    axs[1].legend()
+    axs[1].set_ylabel('Error (SPU)')
+    axs[2].plot(pid_test_history['time'], pid_test_history['drum_1'], label='PID drum position', linestyle=':')
+    axs[2].plot(single_test_history['time'], single_test_history['drum_1'], label='Single-RL drum position', linestyle='-')
+    axs[2].legend()
+    axs[2].set_xlabel('Time (s)')
+    axs[2].set_ylabel('Drum position (degrees)')
+    fig.tight_layout()
+    fig.savefig(graph_3_path)
 
-    plot_path = graph_path / f'3_{args.test_profile}-multi-angle.png'
-    data_list = [(multi_test_history, 'drum_1', 'drum 1'),
-                 (multi_test_history, 'drum_2', 'drum 2'),
-                 (multi_test_history, 'drum_3', 'drum 3'),
-                 (multi_test_history, 'drum_4', 'drum 4'),
-                 (multi_test_history, 'drum_5', 'drum 5'),
-                 (multi_test_history, 'drum_6', 'drum 6'),
-                 (multi_test_history, 'drum_7', 'drum 7'),
-                 (multi_test_history, 'drum_8', 'drum 8'),]
-    microutils.plot_history(plot_path, data_list, 'Control Drum Position (°)')
+    # Graph 3.5: just marl
+    # ###################
+    graph_3_5_path = graph_path / f'3.5_marl-{args.test_profile}.png'
+    plt.clf()
+    fig, axs = plt.subplots(2, 1, sharex=True, figsize=(10, 5)) # power, error
+    axs[0].plot(marl_test_history['time'], marl_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
+    axs[0].plot(marl_test_history['time'], marl_test_history['actual_power'], label='MARL power', linestyle='-')
+    axs[0].legend()
+    axs[0].set_ylabel('Power (SPU)')
+    axs[1].plot(marl_test_history['time'], marl_test_history['diff'], label='MARL error', linestyle='-')
+    axs[1].axhline(y=0, color='black', linestyle='--')
+    axs[1].legend()
+    axs[1].set_ylabel('Error (SPU)')
+    fig.tight_layout()
+    fig.savefig(graph_3_5_path)
 
-    plot_path = graph_path / f'3_{args.test_profile}-marl-angle.png'
-    data_list = [(marl_test_history, 'drum_1', 'drum 1'),
-                 (marl_test_history, 'drum_2', 'drum 2'),
-                 (marl_test_history, 'drum_3', 'drum 3'),
-                 (marl_test_history, 'drum_4', 'drum 4'),
-                 (marl_test_history, 'drum_5', 'drum 5'),
-                 (marl_test_history, 'drum_6', 'drum 6'),
-                 (marl_test_history, 'drum_7', 'drum 7'),
-                 (marl_test_history, 'drum_8', 'drum 8'),]
-    microutils.plot_history(plot_path, data_list, 'Control Drum Position (°)')
+    # Graph 4: multi-action vs symmetric vs marl
+    # ##########################################
+    graph_4_path = graph_path / f'4-multicompare-{args.test_profile}.png'
+    plt.clf()
+    fig, axs = plt.subplots(2, 1, sharex=True, figsize=(10, 5)) # power, error
+    axs[0].plot(multi_test_history['time'], multi_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
+    axs[0].plot(multi_test_history['time'], multi_test_history['actual_power'], label='Multi-RL power', linestyle='-.')
+    axs[0].plot(symmetric_test_history['time'], symmetric_test_history['actual_power'], label='Symmetric-RL power', linestyle=':')
+    axs[0].plot(marl_test_history['time'], marl_test_history['actual_power'], label='MARL power', linestyle='-')
+    axs[0].legend()
+    axs[0].set_ylabel('Power (SPU)')
+    axs[1].plot(multi_test_history['time'], multi_test_history['diff'], label='Multi-RL error', linestyle='-.')
+    axs[1].plot(symmetric_test_history['time'], symmetric_test_history['diff'], label='Symmetric-RL error', linestyle=':')
+    axs[1].plot(marl_test_history['time'], marl_test_history['diff'], label='MARL error', linestyle='-')
+    axs[1].axhline(y=0, color='black', linestyle='--')
+    axs[1].legend()
+    axs[1].set_ylabel('Error (SPU)')
+    fig.tight_layout()
+    fig.savefig(graph_4_path)
 
-    plot_path = graph_path / f'3_{args.test_profile}-single-marl-angle.png'
-    data_list = [(single_marl_test_history, 'drum_1', 'drum 1'),
-                 (single_marl_test_history, 'drum_2', 'drum 2'),
-                 (single_marl_test_history, 'drum_3', 'drum 3'),
-                 (single_marl_test_history, 'drum_4', 'drum 4'),
-                 (single_marl_test_history, 'drum_5', 'drum 5'),
-                 (single_marl_test_history, 'drum_6', 'drum 6'),
-                 (single_marl_test_history, 'drum_7', 'drum 7'),
-                 (single_marl_test_history, 'drum_8', 'drum 8'),]
-    microutils.plot_history(plot_path, data_list, 'Control Drum Position (°)')
-
+    # ######################################################
     # plot training curves multi-action vs symmetric vs marl
-    ########################################################
+    # ######################################################
     multi_logs_path = multi_folder / 'logs/PPO_1'
     symmetric_logs_path = symmetric_folder / 'logs/PPO_1'
     marl_logs_path = marl_folder / 'logs/PPO_1'
 
+    # Graph 5: training curve (ep len) multi-action vs symmetric vs marl
+    # ##################################################################
     multi_ep_len = pd.read_csv(multi_logs_path / 'ep_len_mean.csv')
     symmetric_ep_len = pd.read_csv(symmetric_logs_path / 'ep_len_mean.csv')
     marl_ep_len = pd.read_csv(marl_logs_path / 'ep_len_mean.csv')
@@ -265,8 +296,10 @@ def main(args):
     plt.xlabel('Environment timesteps')
     plt.ylabel('Episode length (s)')
     plt.legend()
-    plt.savefig(graph_path / f'4_training-curve-ep-len.png')
+    plt.savefig(graph_path / f'5_training-curve-ep-len.png')
 
+    # Graph 6: training curve (ep rew) multi-action vs symmetric vs marl
+    # ##################################################################
     multi_ep_rew = pd.read_csv(multi_logs_path / 'ep_rew_mean.csv')
     symmetric_ep_rew = pd.read_csv(symmetric_logs_path / 'ep_rew_mean.csv')
     marl_ep_rew = pd.read_csv(marl_logs_path / 'ep_rew_mean.csv')
@@ -278,34 +311,36 @@ def main(args):
     plt.xlabel('Environment timesteps')
     plt.ylabel('Episode reward')
     plt.legend()
-    plt.savefig(graph_path / f'4_training-curve-ep-rew.png')
+    plt.savefig(graph_path / f'6_training-curve-ep-rew.png')
 
-    # plot noise graphs
-    ####################
-    single_1noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
-                                                                          'run_path': single_folder,
-                                                                          'noise': 0.01})
-    single_2noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
-                                                                          'run_path': single_folder,
-                                                                          'noise': 0.02})
-    single_3noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
-                                                                          'run_path': single_folder,
-                                                                          'noise': 0.03})
-    # innoculated2_2noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
-    #                                                                             'run_path': innoculated2_folder,
-    #                                                                             'noise': 0.03})
-    noise_path = graph_path / '5_noise-power-2SPU.png'
-    data_list = [(single_1noise_history, 'desired_power', 'desired power'),
-                 (single_1noise_history, 'actual_power', '1 SPU noise'),
-                 (single_2noise_history, 'actual_power', '2 SPU noise'),
-                 (single_3noise_history, 'actual_power', '3 SPU noise')]
-    microutils.plot_history(noise_path, data_list, 'Power (SPU)')
 
-    noise_path = graph_path / '5_noise-diff-2SPU.png'   
-    data_list = [(single_1noise_history, 'diff', '1 SPU noise'),
-                 (single_2noise_history, 'diff', '2 SPU noise'),
-                 (single_3noise_history, 'diff', '3 SPU noise')]
-    microutils.plot_history(noise_path, data_list, 'Power Difference (SPU)')
+
+    # # plot noise graphs
+    # ####################
+    # single_1noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
+    #                                                                       'run_path': single_folder,
+    #                                                                       'noise': 0.01})
+    # single_2noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
+    #                                                                       'run_path': single_folder,
+    #                                                                       'noise': 0.02})
+    # single_3noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
+    #                                                                       'run_path': single_folder,
+    #                                                                       'noise': 0.03})
+    # # innoculated2_2noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
+    # #                                                                             'run_path': innoculated2_folder,
+    # #                                                                             'noise': 0.03})
+    # noise_path = graph_path / '5_noise-power-2SPU.png'
+    # data_list = [(single_1noise_history, 'desired_power', 'desired power'),
+    #              (single_1noise_history, 'actual_power', '1 SPU noise'),
+    #              (single_2noise_history, 'actual_power', '2 SPU noise'),
+    #              (single_3noise_history, 'actual_power', '3 SPU noise')]
+    # microutils.plot_history(noise_path, data_list, 'Power (SPU)')
+
+    # noise_path = graph_path / '5_noise-diff-2SPU.png'   
+    # data_list = [(single_1noise_history, 'diff', '1 SPU noise'),
+    #              (single_2noise_history, 'diff', '2 SPU noise'),
+    #              (single_3noise_history, 'diff', '3 SPU noise')]
+    # microutils.plot_history(noise_path, data_list, 'Power Difference (SPU)')
 
 
 
