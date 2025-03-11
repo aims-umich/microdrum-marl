@@ -26,7 +26,7 @@ class PIDController:
     """
     # minimized IAE: [0.07822899, 0.,         0.30242492]
     # evolution optimized: [0.07820128, 0.,         0.30870895]
-    def __init__(self, Kp=.078, Ki=0, Kd=0.3, max_rate=1):
+    def __init__(self, Kp=.071, Ki=0, Kd=0.34, max_rate=1):
         self.Kp = Kp
         self.Ki = Ki
         self.Kd = Kd
@@ -264,8 +264,8 @@ def noise_loop(env_type, env_kwargs, type='rl'):
 
 
 if __name__ == '__main__':
-    training_profile = interp1d([  0,  20, 30, 35, 60, 100, 120, 125, 140, 160, 180, 200], # times (s)
-                                [100, 100, 90, 90, 55,  55,  65,  65,  80,  80,  95,  95]) # power (SPU)
+    training_profile = interp1d([  0,  10, 20, 30, 50, 70, 120, 140, 160, 195, 200], # times (s)
+                                [100, 100, 98, 99, 80, 60,  60,  70,  70,  80,  80]) # power (SPU)
     result = tune_pid(training_profile)
     print('Tuned PID parameters:')
     print(f'P gain: {result.x[0]}, I gain: {result.x[1]}, D gain: {result.x[2]}')
