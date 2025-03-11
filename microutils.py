@@ -244,6 +244,25 @@ def test_trained_marl(env_type, env_kwargs):
     return history
 
 
+def noise_loop(env_type, env_kwargs, type='rl'):
+    # other types are marl and pid
+    overall_metrics = []
+    for noise_level in np.linspace(0, 3, 11):
+        env_kwargs['noise_level'] = noise_level
+        level_metrics = []
+        for _ in range(50):
+            if type == 'rl':
+                history = test_trained_rl(env_type, env_kwargs)
+            elif type == 'marl':
+                history = test_trained_marl(env_type, env_kwargs)
+            elif type == 'pid':
+                history = test_tuned_pid(env_type, env_kwargs)
+            mae, cae, control_effort, mean_control_effort = calc_metrics(history)
+            level_metrics.append((mae, cae, control_effort, mean_control_effort))
+        overall_metrics.append(level_metrics)
+    return np.array(overall_metrics)
+
+
 if __name__ == '__main__':
     training_profile = interp1d([  0,  20, 30, 35, 60, 100, 120, 125, 140, 160, 180, 200], # times (s)
                                 [100, 100, 90, 90, 55,  55,  65,  65,  80,  80,  95,  95]) # power (SPU)
