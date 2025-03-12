@@ -10,7 +10,12 @@ This uses python 3.11. Necessary packages may be found in pyproject.toml. The ea
 You will likely need to restart your terminal after installation.
 
 ## Regenerating results
-With uv installed, run:
+First clone this repository:
+
+```git clone https://github.com/lionturkey/microdrum-marl.git```
+```cd microdrum-marl```
+
+With uv installed, you can run:
 
 ```uv run main.py```
 
