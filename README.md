@@ -37,7 +37,9 @@ To retrain a given model, delete the *models* folder within the corresponding na
 
 ```uv run main.py -t 5000000```
 
-Note that in line with recommendations from [*stable-baselines3*](https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html), this is a CPU-only training, since the model doesn't involve a CNN.
+Notes:
+- In line with recommendations from [*stable-baselines3*](https://stable-baselines3.readthedocs.io/en/master/modules/ppo.html), this is a CPU-only training, since the model doesn't involve a CNN
+- Due to the stochasticity of the training process, results may vary from run to run.
 
 ## Testing models
 By default, models are tested on the 200s "test" profile. To test on a different profile, add the '-p' flag followed by the name of the profile you would like to test on. You may disable a number of control drums at random with the '-d' flag. For example, to disable 1 drum on the 300 minute "longtest" profile, use:
