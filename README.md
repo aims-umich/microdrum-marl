@@ -28,10 +28,10 @@ The three key python files are:
 - main.py: Reproduces the results from the paper
 
 To save training time, pretrained models and training outputs are included in the *runs* folder. To train these on your own, simply delete the folder you would like to retrain.
-- single-rl: a single action agent trained for 2 million timesteps
-- multi-rl: a multi action agent trained for 5 million timesteps
-- symmetric-rl: a multi action agent trained for 5 million timesteps
-- marl: a MARL agent trained for 40 million timesteps (5 million simulation timesteps)
+- single-rl: a single action agent trained for 2 million timesteps (estimated 1 hour)
+- multi-rl: a multi action agent trained for 5 million timesteps (estimated 3 hours)
+- symmetric-rl: a multi action agent trained for 5 million timesteps (estimated 3 hours)
+- marl: a MARL agent trained for 40 million timesteps (5 million simulation timesteps, estimated 5 hours)
 
 To retrain a given model, delete the *models* folder within the corresponding named directory in the *runs* folder. By default, this will be trained for 2 million simulation timesteps (which corresponds to 16 million timesteps in the marl case, since there are eight separate agent actions per simulation timestep). To change this, add the '-t' flag followed by the number of timesteps you would like to train for. For example, to train for 5 million timesteps, use:
 
