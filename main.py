@@ -134,6 +134,23 @@ def main(args):
 
         # marl_test_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
         #                                                               'run_path': marl_folder})
+    model_list = list(model_folder.glob('*.zip'))
+    if len(model_list) > 1:
+        print('Multiple MARL models found, running all to determine best model')
+        low_cae = float('inf')
+        for model in model_list:
+            model.touch(exist_ok=True)
+            history = microutils.test_trained_marl(envs.HolosMARL, {**training_kwargs,
+                                                                  'run_path': marl_folder})
+            _, cae, _, _ = microutils.calc_metrics(history)
+            if cae < low_cae:
+                print(f'New best model found: {model.name} - CAE: {cae}')
+                low_cae = cae
+                model.rename(model_folder / 'best_model.zip')
+        # clean up poor models
+        for model in model_list:
+            if model.name != 'best_model.zip':
+                model.unlink(missing_ok=True)
 
 
     ####################
