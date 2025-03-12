@@ -58,39 +58,6 @@ def main(args):
         microutils.train_rl(envs.HolosSingle, training_kwargs,
                             total_timesteps=args.timesteps, n_envs=args.n_envs)
 
-    #########################################
-    # Single Action Innoculated RL Training #
-    #########################################
-    noise_folder = Path.cwd() / 'runs' / 'noise-rl'
-    noise_folder.mkdir(exist_ok=True, parents=True)
-    model_folder = noise_folder / 'models/'
-    if not model_folder.exists():  # if a model has already been trained, don't re-train
-        print('Training Single Action Innoculated RL...')
-        training_kwargs['run_path'] = noise_folder
-        training_kwargs['noise'] = 0.01  # 1 SPU standard deviation of measurement noise
-        microutils.train_rl(envs.HolosSingle, training_kwargs,
-                            total_timesteps=args.timesteps, n_envs=args.n_envs)
-
-    noise01_folder = Path.cwd() / 'runs' / 'noise-rl01'
-    noise01_folder.mkdir(exist_ok=True, parents=True)
-    model_folder = noise01_folder / 'models/'
-    if not model_folder.exists():  # if a model has already been trained, don't re-train
-        print('Training Single Action Innoculated RL...')
-        training_kwargs['run_path'] = noise01_folder
-        training_kwargs['noise'] = 0.001  # .1 SPU standard deviation of measurement noise
-        microutils.train_rl(envs.HolosSingle, training_kwargs,
-                            total_timesteps=args.timesteps, n_envs=args.n_envs)
-
-    noise2_folder = Path.cwd() / 'runs' / 'noise-rl2'
-    noise2_folder.mkdir(exist_ok=True, parents=True)
-    model_folder = noise2_folder / 'models/'
-    if not model_folder.exists():  # if a model has already been trained, don't re-train
-        print('Training Single Action Innoculated RL...')
-        training_kwargs['run_path'] = noise2_folder
-        training_kwargs['noise'] = 0.02  # 2 SPU standard deviation of measurement noise
-        microutils.train_rl(envs.HolosSingle, training_kwargs,
-                            total_timesteps=args.timesteps, n_envs=args.n_envs)
-
     ##########################
     # Multi Drum RL Training #
     ##########################
@@ -151,7 +118,6 @@ def main(args):
         for model in model_list:
             if model.name != 'best_model.zip':
                 model.unlink(missing_ok=True)
-
 
     ####################
     # Plotting Figures #
