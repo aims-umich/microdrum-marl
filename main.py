@@ -353,10 +353,55 @@ def main(args):
     plt.legend()
     plt.savefig(graph_path / f'6_training-curve-ep-rew.png')
 
-
-
     # # plot noise graphs
     # ####################
+
+    # Graph 7: cae vs noise level for single-rl
+    # ########################################
+    single_noise_path = single_folder / 'noise-metrics.csv'
+    if not single_noise_path.exists():
+        overall_metrics = microutils.noise_loop(envs.HolosSingle, {**testing_kwargs,
+                                                                      'run_path': single_folder}, type='rl')
+        overall_metrics.to_csv(single_noise_path, index=True)
+    single_noise_metrics = pd.read_csv(single_noise_path, index_col=0)
+
+    pid_noise_path = pid_folder / 'noise-metrics.csv'
+    if not pid_noise_path.exists():
+        overall_metrics = microutils.noise_loop(envs.HolosSingle, {**testing_kwargs,
+                                                                      'run_path': pid_folder}, type='pid')
+        overall_metrics.to_csv(pid_noise_path, index=True)
+    pid_noise_metrics = pd.read_csv(pid_noise_path, index_col=0)
+
+    marl_noise_path = marl_folder / 'noise-metrics.csv'
+    if not marl_noise_path.exists():
+        overall_metrics = microutils.noise_loop(envs.HolosMARL, {**testing_kwargs,
+                                                                      'run_path': marl_folder}, type='marl')
+        overall_metrics.to_csv(marl_noise_path, index=True)
+    marl_noise_metrics = pd.read_csv(marl_noise_path, index_col=0)
+
+    plt.close('all')
+    plt.figure(figsize=(10, 10))
+    fig, axs = plt.subplots(2, 1, sharex=True, figsize=(10, 10)) # power, error
+    axs[0].errorbar((single_noise_metrics.index * 100), single_noise_metrics['cae_mean'], yerr=single_noise_metrics['cae_std'], label='Single-RL')
+    axs[0].errorbar((pid_noise_metrics.index * 100), pid_noise_metrics['cae_mean'], yerr=pid_noise_metrics['cae_std'], label='PID')
+    axs[0].errorbar((marl_noise_metrics.index * 100), marl_noise_metrics['cae_mean'], yerr=marl_noise_metrics['cae_std'], label='MARL')
+    axs[0].set_ylabel('CAE (SPU)')
+    axs[0].legend()
+    axs[1].errorbar((single_noise_metrics.index * 100), single_noise_metrics['ce_mean'], yerr=single_noise_metrics['ce_std'], label='Single-RL')
+    axs[1].errorbar((pid_noise_metrics.index * 100), pid_noise_metrics['ce_mean'], yerr=pid_noise_metrics['ce_std'], label='PID')
+    axs[1].errorbar((marl_noise_metrics.index * 100), marl_noise_metrics['ce_mean'], yerr=marl_noise_metrics['ce_std'], label='MARL')
+    axs[1].set_xlabel('Noise standard deviation (SPU)')
+    axs[1].set_ylabel('Control Effort (degrees)')
+    plt.legend()
+    plt.savefig(graph_path / f'7_noise-metrics.png')
+            
+
+
+
+
+
+
+
     # single_1noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
     #                                                                       'run_path': single_folder,
     #                                                                       'noise': 0.01})

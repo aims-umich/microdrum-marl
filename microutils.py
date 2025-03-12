@@ -24,8 +24,6 @@ class PIDController:
         Kd: the derivative gain
         max_rate: the maximum rate of change of the control signal
     """
-    # minimized IAE: [0.07822899, 0.,         0.30242492]
-    # evolution optimized: [0.07820128, 0.,         0.30870895]
     def __init__(self, Kp=.071, Ki=0, Kd=0.34, max_rate=1):
         self.Kp = Kp
         self.Ki = Ki
@@ -125,8 +123,8 @@ def calc_metrics(history: pd.DataFrame):
     assert history['time'][1] - history['time'][0] == 1, 'metric calculations assume 1 second timesteps'
     error = history['desired_power'] - history['actual_power']
     absolute_error = np.abs(error)
-    mean_absolute_error = np.mean(absolute_error)
-    cumulative_absolute_error = np.sum(absolute_error)
+    mean_absolute_error = 100 * np.mean(absolute_error)
+    cumulative_absolute_error = 100 * np.sum(absolute_error)
     drum_angles = history[['drum_1', 'drum_2', 'drum_3', 'drum_4', 'drum_5', 'drum_6', 'drum_7', 'drum_8']]
     drum_speeds = np.diff(drum_angles, axis=0)
     absolute_drum_speeds = np.abs(drum_speeds)
@@ -247,8 +245,10 @@ def test_trained_marl(env_type, env_kwargs):
 def noise_loop(env_type, env_kwargs, type='rl'):
     # other types are marl and pid
     overall_metrics = []
-    for noise_level in np.linspace(0, 3, 11):
-        env_kwargs['noise_level'] = noise_level
+    noise_levels = np.linspace(0, .03, 6)
+    episode_length = env_kwargs['episode_length']
+    for noise_level in noise_levels:
+        env_kwargs['noise'] = noise_level
         level_metrics = []
         for _ in range(50):
             if type == 'rl':
@@ -256,11 +256,22 @@ def noise_loop(env_type, env_kwargs, type='rl'):
             elif type == 'marl':
                 history = test_trained_marl(env_type, env_kwargs)
             elif type == 'pid':
-                history = test_tuned_pid(env_type, env_kwargs)
+                history = test_pid(env_type, env_kwargs)
+            if len(history) < episode_length:
+                print(f'Episode too short for {env_type.__name__} with noise {noise_level}')
+                continue
             mae, cae, control_effort, mean_control_effort = calc_metrics(history)
             level_metrics.append((mae, cae, control_effort, mean_control_effort))
-        overall_metrics.append(level_metrics)
-    return np.array(overall_metrics)
+        level_metrics = np.array(level_metrics)
+        cae_mean = level_metrics[:,1].mean()
+        cae_std = level_metrics[:,1].std()
+        ce_mean = level_metrics[:,2].mean()
+        ce_std = level_metrics[:,2].std()
+        overall_metrics.append((cae_mean, cae_std, ce_mean, ce_std))
+    overall_metrics = np.array(overall_metrics)
+    df = pd.DataFrame(overall_metrics, columns=['cae_mean', 'cae_std', 'ce_mean', 'ce_std'],
+                     index=noise_levels)
+    return df
 
 
 if __name__ == '__main__':
