@@ -384,6 +384,26 @@ def main(args):
         overall_metrics.to_csv(single_noise_path, index=True)
     single_noise_metrics = pd.read_csv(single_noise_path, index_col=0)
 
+    multi_noise_path = multi_folder / 'noise-metrics.csv'
+    if not multi_noise_path.exists():
+        overall_metrics = microutils.noise_loop(envs.HolosMulti,
+                                                {**testing_kwargs,
+                                                'run_path': multi_folder},
+                                                type='rl',
+                                                noise_levels=noise_levels)
+        overall_metrics.to_csv(multi_noise_path, index=True)
+    multi_noise_metrics = pd.read_csv(multi_noise_path, index_col=0)
+
+    symmetric_noise_path = symmetric_folder / 'noise-metrics.csv'
+    if not symmetric_noise_path.exists():
+        overall_metrics = microutils.noise_loop(envs.HolosMulti,
+                                                {**testing_kwargs,
+                                                'run_path': symmetric_folder},
+                                                type='rl',
+                                                noise_levels=noise_levels)
+        overall_metrics.to_csv(symmetric_noise_path, index=True)
+    symmetric_noise_metrics = pd.read_csv(symmetric_noise_path, index_col=0)
+
     pid_noise_path = pid_folder / 'noise-metrics.csv'
     if not pid_noise_path.exists():
         overall_metrics = microutils.noise_loop(envs.HolosSingle,
