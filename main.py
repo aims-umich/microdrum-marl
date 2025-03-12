@@ -18,7 +18,7 @@ def main(args):
                                [100, 100, 50,  50,   65,  65,  50,  80,  80]) # power (SPU)
     lowpower_profile = interp1d([  0,   5, 100, 200], # times (s)
                                 [100, 100,  30,  90]) # power (SPU)
-    longtest_profile = interp1d([  0,  2000, 3000, 3500, 6000, 10000, 10020, 12500, 14000, 16000, 16010, 20000], # times (s)
+    longtest_profile = interp1d([  0,  2000, 3000, 5500, 6000, 10000, 10020, 12500, 14000, 16000, 16010, 20000], # times (s)
                                 [100,   100,   90,   90,   45,    45,    65,    65,    80,    80,  95,  95]) # power (SPU)
 
     match args.test_profile:
@@ -200,7 +200,7 @@ def main(args):
     # ############################################################
     graph_3_path = graph_path / f'3-singleposition-{args.test_profile}.png'
     plt.clf()
-    fig, axs = plt.subplots(3, 1, sharex=True, figsize=(10, 7)) # power, error, drum position
+    fig, axs = plt.subplots(4, 1, sharex=True, figsize=(10, 9)) # power, error, xenon + iodine, drum position
     axs[0].plot(pid_test_history['time'], pid_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
     axs[0].plot(pid_test_history['time'], pid_test_history['actual_power'], label='PID power', linestyle=':')
     axs[0].plot(single_test_history['time'], single_test_history['actual_power'], label='Single-RL power', linestyle='--')
@@ -211,11 +211,17 @@ def main(args):
     axs[1].axhline(y=0, color='black', linestyle='--')
     axs[1].legend()
     axs[1].set_ylabel('Error (SPU)')
-    axs[2].plot(pid_test_history['time'], pid_test_history['drum_1'], label='PID drum position', linestyle=':')
-    axs[2].plot(single_test_history['time'], single_test_history['drum_1'], label='Single-RL drum position', linestyle='-')
+    axs[2].plot(pid_test_history['time'], pid_test_history['Xe'], label='PID Xenon', linestyle=':')
+    axs[2].plot(single_test_history['time'], single_test_history['Xe'], label='Single-RL Xenon', linestyle='-')
+    axs[2].plot(pid_test_history['time'], pid_test_history['I'], label='PID Iodine', linestyle=':')
+    axs[2].plot(single_test_history['time'], single_test_history['I'], label='Single-RL Iodine', linestyle='-')
     axs[2].legend()
-    axs[2].set_xlabel('Time (s)')
-    axs[2].set_ylabel('Drum position (degrees)')
+    axs[2].set_ylabel('Concentration (m^-3)')
+    axs[3].plot(pid_test_history['time'], pid_test_history['drum_1'], label='PID drum position', linestyle=':')
+    axs[3].plot(single_test_history['time'], single_test_history['drum_1'], label='Single-RL drum position', linestyle='-')
+    axs[3].legend()
+    axs[3].set_xlabel('Time (s)')
+    axs[3].set_ylabel('Drum position (degrees)')
     fig.tight_layout()
     fig.savefig(graph_3_path)
 
@@ -256,10 +262,60 @@ def main(args):
     axs[3].plot(marl_test_history['time'], marl_test_history['drum_8'], label='MARL drum 8')
     axs[3].legend()
     axs[3].set_ylabel('Drum position (degrees)')
+    axs[3].set_xlabel('Time (s)')
     fig.tight_layout()
     fig.savefig(graph_4_path)
 
-    # Graph 5: training curves (ep len and rew) multi-action vs symmetric vs marl
+    # Graph 5: multi-action vs symmetric vs marl with Xenon and Iodine
+    # ################################################################
+    graph_5_path = graph_path / f'5-multicompare-{args.test_profile}.png'
+    plt.clf()
+    fig, axs = plt.subplots(5, 1, sharex=True, figsize=(10, 12)) # power, error
+    axs[0].plot(multi_test_history['time'], multi_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
+    axs[0].plot(multi_test_history['time'], multi_test_history['actual_power'], label='Multi-RL power', linestyle='-.')
+    axs[0].plot(symmetric_test_history['time'], symmetric_test_history['actual_power'], label='Symmetric-RL power', linestyle=':')
+    axs[0].plot(marl_test_history['time'], marl_test_history['actual_power'], label='MARL power', linestyle='-')
+    axs[0].legend()
+    axs[0].set_ylabel('Power (SPU)')
+    axs[1].plot(multi_test_history['time'], multi_test_history['diff'], label='Multi-RL error', linestyle='-.')
+    axs[1].plot(symmetric_test_history['time'], symmetric_test_history['diff'], label='Symmetric-RL error', linestyle=':')
+    axs[1].plot(marl_test_history['time'], marl_test_history['diff'], label='MARL error', linestyle='-')
+    axs[1].axhline(y=0, color='black', linestyle='--')
+    axs[1].legend()
+    axs[1].set_ylabel('Error (SPU)')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_1'], label='Multi-RL drum 1')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_2'], label='Multi-RL drum 2')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_3'], label='Multi-RL drum 3')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_4'], label='Multi-RL drum 4')    
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_5'], label='Multi-RL drum 5')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_6'], label='Multi-RL drum 6')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_7'], label='Multi-RL drum 7')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_8'], label='Multi-RL drum 8')
+    axs[2].legend()
+    axs[2].set_ylabel('Drum position (degrees)')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_1'], label='MARL drum 1')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_2'], label='MARL drum 2')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_3'], label='MARL drum 3')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_4'], label='MARL drum 4')    
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_5'], label='MARL drum 5')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_6'], label='MARL drum 6')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_7'], label='MARL drum 7')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_8'], label='MARL drum 8')
+    axs[3].legend()
+    axs[3].set_ylabel('Drum position (degrees)')
+    axs[4].plot(multi_test_history['time'], multi_test_history['Xe'], label='Multi-RL Xe', linestyle='-.')
+    axs[4].plot(multi_test_history['time'], multi_test_history['I'], label='Multi-RL I', linestyle='-.')
+    axs[4].plot(symmetric_test_history['time'], symmetric_test_history['Xe'], label='Symmetric-RL Xe', linestyle=':')
+    axs[4].plot(symmetric_test_history['time'], symmetric_test_history['I'], label='Symmetric-RL I', linestyle=':')
+    axs[4].plot(marl_test_history['time'], marl_test_history['Xe'], label='MARL Xe', linestyle='-')
+    axs[4].plot(marl_test_history['time'], marl_test_history['I'], label='MARL I', linestyle='-')
+    axs[4].legend()
+    axs[4].set_ylabel('Concentration (m^-3)')
+    axs[4].set_xlabel('Time (s)')
+    fig.tight_layout()
+    fig.savefig(graph_5_path)
+
+    # Graph 6: training curves (ep len and rew) multi-action vs symmetric vs marl
     # ##################################################################
     multi_logs_path = multi_folder / 'logs/PPO_1'
     symmetric_logs_path = symmetric_folder / 'logs/PPO_1'
@@ -285,9 +341,9 @@ def main(args):
     axs[1].set_xlabel('Environment timesteps')
     axs[1].set_ylabel('Episode reward')
     axs[1].legend()
-    plt.savefig(graph_path / f'5_training-curves.png')
+    plt.savefig(graph_path / f'6_training-curves.png')
 
-    # Graph 6: run histories for pid, single-rl, and marl at 0.015 noise
+    # Graph 7: run histories for pid, single-rl, and marl at 0.015 noise
     # ##################################################################
     pid_noise_history = microutils.test_pid(envs.HolosSingle, {**testing_kwargs,
                                                                'run_path': pid_folder,
@@ -313,9 +369,9 @@ def main(args):
     # axs[1].set_xlabel('Time (s)')
     # axs[1].set_ylabel('Drum speed (degrees per second)')
     plt.legend()
-    plt.savefig(graph_path / f'6_noise-run-histories.png')
+    plt.savefig(graph_path / f'7_noise-run-histories.png')
 
-    # Graph 7: cae and ce vs noise level for pid, single-rl, and marl
+    # Graph 8: cae and ce vs noise level for pid, single-rl, and marl
     # ###############################################################
     noise_levels = [0, 0.0025, 0.005, 0.0075, 0.01, 0.02, 0.03]
     single_noise_path = single_folder / 'noise-metrics.csv'
@@ -360,8 +416,7 @@ def main(args):
     axs[1].set_xlabel('Noise standard deviation (SPU)')
     axs[1].set_ylabel('Control Effort (degrees)')
     plt.legend()
-    plt.savefig(graph_path / f'7_noise-metrics.png')
-
+    plt.savefig(graph_path / f'8_noise-metrics.png')
 
 
 if __name__ == '__main__':
