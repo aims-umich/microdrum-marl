@@ -225,7 +225,7 @@ class HolosMulti(gym.Env):
         if current_power > 1.1:  # 110% power is way too much
             terminated = True
         if self.symmetry_reward:
-            reward -= abs(np.max(action) - np.min(action))
+            reward -= abs(np.max(real_action) - np.min(real_action))
         assert reward <= 2, 'max reward exceeded'
         truncated = False
         if self.time >= self.episode_length - 1:
