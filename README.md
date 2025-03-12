@@ -12,8 +12,8 @@ You will likely need to restart your terminal after installation.
 ## Regenerating results
 First clone this repository:
 
-```git clone https://github.com/lionturkey/microdrum-marl.git```
-```cd microdrum-marl```
+```git clone https://github.com/lionturkey/microdrum-marl.git
+cd microdrum-marl```
 
 With uv installed, you can run:
 
