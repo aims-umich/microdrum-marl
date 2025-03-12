@@ -163,6 +163,7 @@ def main(args):
     #######################
     print(f'testing with {args.test_profile}:')
     pid_folder = Path.cwd() / 'runs' / 'pid'
+    pid_folder.mkdir(exist_ok=True, parents=True)
     pid_test_history = microutils.test_pid(envs.HolosSingle, {**testing_kwargs,
                                                               'run_path': pid_folder})
     single_test_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
@@ -277,7 +278,7 @@ def main(args):
     # ##########################################
     graph_4_path = graph_path / f'4-multicompare-{args.test_profile}.png'
     plt.clf()
-    fig, axs = plt.subplots(2, 1, sharex=True, figsize=(10, 5)) # power, error
+    fig, axs = plt.subplots(4, 1, sharex=True, figsize=(10, 10)) # power, error
     axs[0].plot(multi_test_history['time'], multi_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
     axs[0].plot(multi_test_history['time'], multi_test_history['actual_power'], label='Multi-RL power', linestyle='-.')
     axs[0].plot(symmetric_test_history['time'], symmetric_test_history['actual_power'], label='Symmetric-RL power', linestyle=':')
@@ -290,6 +291,26 @@ def main(args):
     axs[1].axhline(y=0, color='black', linestyle='--')
     axs[1].legend()
     axs[1].set_ylabel('Error (SPU)')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_1'], label='Multi-RL drum 1')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_2'], label='Multi-RL drum 2')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_3'], label='Multi-RL drum 3')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_4'], label='Multi-RL drum 4')    
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_5'], label='Multi-RL drum 5')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_6'], label='Multi-RL drum 6')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_7'], label='Multi-RL drum 7')
+    axs[2].plot(multi_test_history['time'], multi_test_history['drum_8'], label='Multi-RL drum 8')
+    axs[2].legend()
+    axs[2].set_ylabel('Drum position (degrees)')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_1'], label='MARL drum 1')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_2'], label='MARL drum 2')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_3'], label='MARL drum 3')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_4'], label='MARL drum 4')    
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_5'], label='MARL drum 5')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_6'], label='MARL drum 6')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_7'], label='MARL drum 7')
+    axs[3].plot(marl_test_history['time'], marl_test_history['drum_8'], label='MARL drum 8')
+    axs[3].legend()
+    axs[3].set_ylabel('Drum position (degrees)')
     fig.tight_layout()
     fig.savefig(graph_4_path)
 
@@ -306,6 +327,8 @@ def main(args):
     symmetric_ep_len = pd.read_csv(symmetric_logs_path / 'ep_len_mean.csv')
     marl_ep_len = pd.read_csv(marl_logs_path / 'ep_len_mean.csv')
     marl_ep_len['Step'] = marl_ep_len['Step'] / 8  # normalize by point kinetics simulations run
+    plt.close('all')
+    plt.figure(figsize=(10, 5))
     plt.clf()
     plt.plot(multi_ep_len['Step'], multi_ep_len['Value'], label='multi-action')
     plt.plot(symmetric_ep_len['Step'], symmetric_ep_len['Value'], label='symmetric')
