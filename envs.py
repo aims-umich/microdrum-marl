@@ -221,8 +221,7 @@ class HolosMulti(gym.Env):
             "next_desired_power": np.array([next_desired_power / 100]),  # convert to 0-1 box space
         }
 
-        desired_power = self.profile(self.time) / 100
-        reward, terminated = self.calc_reward(current_power, desired_power)
+        reward, terminated = self.calc_reward(current_power, current_desired_power)
         if current_power > 1.1:  # 110% power is way too much
             terminated = True
         if self.symmetry_reward:
