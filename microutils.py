@@ -1,18 +1,18 @@
-import numpy as np
+import os
 from pathlib import Path
+import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
 from scipy.optimize import minimize, differential_evolution
 from scipy.interpolate import interp1d
-import envs
-import os
+import stable_baselines3 as sb3
 from stable_baselines3.common.env_util import make_vec_env
 from stable_baselines3.common.callbacks import EvalCallback, CheckpointCallback
 from stable_baselines3.common.vec_env import VecMonitor
 from stable_baselines3.common.monitor import Monitor
-import stable_baselines3 as sb3
 import supersuit as ss
 from pettingzoo.utils.conversions import parallel_to_aec
+
+import envs
 
 
 class PIDController:
@@ -133,19 +133,6 @@ def calc_metrics(history: pd.DataFrame):
     return mean_absolute_error, cumulative_absolute_error, control_effort, mean_control_effort
 
 
-def plot_history(save_path: Path, data_list: list, y_label: str):
-    # format: list of tuples with history (pd.DataFrame), qoi (str), and label (str)
-    plt.clf()
-    labels = []
-    for history, qoi, label in data_list:
-        plt.plot(history['time'], history[qoi])
-        labels.append(label)
-    plt.xlabel('Time (s)')
-    plt.ylabel(y_label)
-    plt.legend(labels)
-    plt.savefig(save_path)
-
-
 def train_rl(env_type, env_kwargs, total_timesteps=2_000_000, n_envs=10):
     run_folder = env_kwargs['run_path']
     model_folder = run_folder / 'models/'
@@ -242,10 +229,9 @@ def test_trained_marl(env_type, env_kwargs):
     return history
 
 
-def noise_loop(env_type, env_kwargs, type='rl'):
+def noise_loop(env_type, env_kwargs, type='rl', noise_levels=np.linspace(0, .03, 6)):
     # other types are marl and pid
     overall_metrics = []
-    noise_levels = np.linspace(0, .03, 6)
     episode_length = env_kwargs['episode_length']
     for noise_level in noise_levels:
         env_kwargs['noise'] = noise_level

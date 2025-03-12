@@ -1,15 +1,10 @@
-from pathlib import Path
 import time
 import numpy as np
-import gymnasium as gym
-from pettingzoo import ParallelEnv
-import matplotlib.pyplot as plt
 import pandas as pd
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
-from scipy.integrate import OdeSolver
-from scipy.integrate._ivp.base import DenseOutput
-import microutils
+import gymnasium as gym
+from pettingzoo import ParallelEnv
 
 
 class HolosPK:
@@ -78,7 +73,6 @@ class HolosPK:
         _, _, _, _, _, _, _, Tf, Tm, _, Xe, _ = y
 
         drum_reactivity = np.sum(self.rho_max * (1 - np.cos(np.deg2rad(drum_angles))) / 2 - self.rho_ss)
-        # drum_reactivity = np.sum(drum_angles - self.u0) * 3.25e-5
         assert drum_reactivity < self.rho_max, 'drum reactivity exceeds max reactivity'
         rho = (drum_reactivity
                + self.alpha_f * (Tf - self.Tf0)
@@ -134,49 +128,6 @@ class HolosPK:
                 - self.sigma_Xe * Xe * n_rate_density)
 
         return [d_n_r, d_c1, d_c2, d_c3, d_c4, d_c5, d_c6, d_Tf, d_Tm, d_Tc, d_Xe, d_I]
-
-
-class EulerDenseOutput(DenseOutput):
-    def __init__(self, t_old, t, y_old, y):
-        super().__init__(t_old, t)
-        self.h = t - t_old
-        self.y_old = y_old
-        self.y = y
-
-    def _call_impl(self, t):
-        # Linear interpolation between points
-        x = (t - self.t_old) / self.h
-        x = np.asarray(x)
-        if x.ndim == 0:
-            x = x[None]
-        return self.y_old[None] + x[:, None] * (self.y - self.y_old)[None]
-
-
-class EulerSolve(OdeSolver):
-    def __init__(self, fun, t0, y0, t_bound, vectorized=False, support_complex=False, **extraneous):
-        super().__init__(fun, t0, y0, t_bound, vectorized, support_complex)
-        self.h = 0.1  # Fixed step size of 0.1s
-        self.y_old = None
-
-    def _step_impl(self):
-        t = self.t
-        y = self.y
-        h = self.h
-
-        # Store old values for dense output
-        self.y_old = y.copy()
-        
-        # Forward Euler step: y_{n+1} = y_n + h * f(t_n, y_n)
-        y_new = y + h * self.fun(t, y)
-        
-        # Update state
-        self.y = y_new
-        self.t = t + h
-
-        return True, None  # Success, no error message
-
-    def _dense_output_impl(self):
-        return EulerDenseOutput(self.t - self.h, self.t, self.y_old, self.y)
 
 
 class HolosMulti(gym.Env):
@@ -250,7 +201,6 @@ class HolosMulti(gym.Env):
         real_action = self.gym2real_action(action) * self.masks
         drum_forcers = self.pke.drum_forcing(self.drum_angles, real_action)
         sol = solve_ivp(self.pke.reactor_dae, [0, 1], self.y, args=drum_forcers)
-        # sol = solve_ivp(self.pke.reactor_dae, [0, 1], self.y, args=drum_forcers, method=EulerSolve)
         self.y = sol.y[:,-1]
         self.drum_angles += real_action
         self.drum_angles = np.clip(self.drum_angles, 0, 180)

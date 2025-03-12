@@ -1,14 +1,12 @@
-import stable_baselines3 as sb3
+import argparse
+from pathlib import Path
 import numpy as np
 import pandas as pd
-from pathlib import Path
-import argparse
-import matplotlib
+from scipy.interpolate import interp1d
 import matplotlib.pyplot as plt
+
 import envs
 import microutils
-from scipy.interpolate import interp1d
-
 plt.style.use('tableau-colorblind10')
 
 
@@ -67,7 +65,6 @@ def main(args):
     if not model_folder.exists():  # if a model has already been trained, don't re-train
         print('Training Multi Action RL...')
         training_kwargs['run_path'] = multi_folder
-        # training_kwargs['valid_maskings'] = (0,1,2,3)  # disable up to three drums at random
         microutils.train_rl(envs.HolosMulti, training_kwargs,
                             total_timesteps=args.timesteps, n_envs=args.n_envs)
 
@@ -80,7 +77,6 @@ def main(args):
     if not model_folder.exists():  # if a model has already been trained, don't re-train
         print('Training Multi Action RL (Symmetric)...')
         training_kwargs['run_path'] = symmetric_folder
-        # training_kwargs['valid_maskings'] = (0,1,2,3)  # disable up to three drums at random
         microutils.train_rl(envs.HolosMulti,
                             {**training_kwargs,
                              'symmetry_reward': True},
@@ -95,12 +91,8 @@ def main(args):
     if not model_folder.exists():
         print('Training Multi Action RL (MARL)...')
         training_kwargs['run_path'] = marl_folder
-        # training_kwargs['valid_maskings'] = (0,1,2,3)  # disable up to three drums at random
         microutils.train_marl(envs.HolosMARL, training_kwargs,
                               total_timesteps=(args.timesteps * 8), n_envs=args.n_envs)
-
-        # marl_test_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
-        #                                                               'run_path': marl_folder})
     model_list = list(model_folder.glob('*.zip'))
     if len(model_list) > 1:
         print('Multiple MARL models found, running all to determine best model')
@@ -143,8 +135,6 @@ def main(args):
                                                         'train_mode': True})  # necessary to cutoff runaway power
     marl_test_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
                                                                       'run_path': marl_folder})
-    # single_marl_test_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
-    #                                                                         'run_path': single_folder})
 
     # Graph 1: PID vs single-RL on test profile with temperature included
     # ###################################################################
@@ -224,22 +214,6 @@ def main(args):
     fig.tight_layout()
     fig.savefig(graph_3_path)
 
-    # Graph 3.5: just marl
-    # ###################
-    graph_3_5_path = graph_path / f'3.5_marl-{args.test_profile}.png'
-    plt.clf()
-    fig, axs = plt.subplots(2, 1, sharex=True, figsize=(10, 5)) # power, error
-    axs[0].plot(marl_test_history['time'], marl_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
-    axs[0].plot(marl_test_history['time'], marl_test_history['actual_power'], label='MARL power', linestyle='-')
-    axs[0].legend()
-    axs[0].set_ylabel('Power (SPU)')
-    axs[1].plot(marl_test_history['time'], marl_test_history['diff'], label='MARL error', linestyle='-')
-    axs[1].axhline(y=0, color='black', linestyle='--')
-    axs[1].legend()
-    axs[1].set_ylabel('Error (SPU)')
-    fig.tight_layout()
-    fig.savefig(graph_3_5_path)
-
     # Graph 4: multi-action vs symmetric vs marl
     # ##########################################
     graph_4_path = graph_path / f'4-multicompare-{args.test_profile}.png'
@@ -280,73 +254,67 @@ def main(args):
     fig.tight_layout()
     fig.savefig(graph_4_path)
 
-    # ######################################################
-    # plot training curves multi-action vs symmetric vs marl
-    # ######################################################
+    # Graph 5: training curves (ep len and rew) multi-action vs symmetric vs marl
+    # ##################################################################
     multi_logs_path = multi_folder / 'logs/PPO_1'
     symmetric_logs_path = symmetric_folder / 'logs/PPO_1'
     marl_logs_path = marl_folder / 'logs/PPO_1'
-
-    # Graph 5: training curve (ep len) multi-action vs symmetric vs marl
-    # ##################################################################
     multi_ep_len = pd.read_csv(multi_logs_path / 'ep_len_mean.csv')
     symmetric_ep_len = pd.read_csv(symmetric_logs_path / 'ep_len_mean.csv')
     marl_ep_len = pd.read_csv(marl_logs_path / 'ep_len_mean.csv')
     marl_ep_len['Step'] = marl_ep_len['Step'] / 8  # normalize by point kinetics simulations run
-    plt.close('all')
-    plt.figure(figsize=(10, 5))
-    plt.clf()
-    plt.plot(multi_ep_len['Step'], multi_ep_len['Value'], label='multi-action')
-    plt.plot(symmetric_ep_len['Step'], symmetric_ep_len['Value'], label='symmetric')
-    plt.plot(marl_ep_len['Step'], marl_ep_len['Value'], label='marl')
-    plt.xlabel('Environment timesteps')
-    plt.ylabel('Episode length (s)')
-    plt.legend()
-    plt.savefig(graph_path / f'5_training-curve-ep-len.png')
-
-    # Graph 6: training curve (ep rew) multi-action vs symmetric vs marl
-    # ##################################################################
     multi_ep_rew = pd.read_csv(multi_logs_path / 'ep_rew_mean.csv')
     symmetric_ep_rew = pd.read_csv(symmetric_logs_path / 'ep_rew_mean.csv')
     marl_ep_rew = pd.read_csv(marl_logs_path / 'ep_rew_mean.csv')
     marl_ep_rew['Step'] = marl_ep_rew['Step'] / 8  # normalize by point kinetics simulations run
-    plt.clf()
-    plt.plot(multi_ep_rew['Step'], multi_ep_rew['Value'], label='multi-action')
-    plt.plot(symmetric_ep_rew['Step'], symmetric_ep_rew['Value'], label='symmetric')
-    plt.plot(marl_ep_rew['Step'], marl_ep_rew['Value'], label='marl')
-    plt.xlabel('Environment timesteps')
-    plt.ylabel('Episode reward')
-    plt.legend()
-    plt.savefig(graph_path / f'6_training-curve-ep-rew.png')
 
-    # # plot noise graphs
-    # ####################
+    fig, axs = plt.subplots(2, 1, sharex=True, figsize=(10, 10)) # power, error
+    axs[0].plot(multi_ep_len['Step'], multi_ep_len['Value'], label='multi-action')
+    axs[0].plot(symmetric_ep_len['Step'], symmetric_ep_len['Value'], label='symmetric')
+    axs[0].plot(marl_ep_len['Step'], marl_ep_len['Value'], label='marl')
+    axs[0].set_ylabel('Episode length (s)')
+    axs[0].legend()
+    axs[1].plot(multi_ep_rew['Step'], multi_ep_rew['Value'], label='multi-action')
+    axs[1].plot(symmetric_ep_rew['Step'], symmetric_ep_rew['Value'], label='symmetric')
+    axs[1].plot(marl_ep_rew['Step'], marl_ep_rew['Value'], label='marl')
+    axs[1].set_xlabel('Environment timesteps')
+    axs[1].set_ylabel('Episode reward')
+    axs[1].legend()
+    plt.savefig(graph_path / f'5_training-curves.png')
 
-    # Graph 7: cae vs noise level for single-rl
-    # ########################################
+    # Graph 6: cae and ce vs noise level for pid, single-rl, and marl
+    # ###############################################################
+    noise_levels = [0, 0.0025, 0.005, 0.0075, 0.01, 0.02, 0.03]
     single_noise_path = single_folder / 'noise-metrics.csv'
     if not single_noise_path.exists():
-        overall_metrics = microutils.noise_loop(envs.HolosSingle, {**testing_kwargs,
-                                                                      'run_path': single_folder}, type='rl')
+        overall_metrics = microutils.noise_loop(envs.HolosSingle,
+                                                {**testing_kwargs,
+                                                'run_path': single_folder},
+                                                type='rl',
+                                                noise_levels=noise_levels)
         overall_metrics.to_csv(single_noise_path, index=True)
     single_noise_metrics = pd.read_csv(single_noise_path, index_col=0)
 
     pid_noise_path = pid_folder / 'noise-metrics.csv'
     if not pid_noise_path.exists():
-        overall_metrics = microutils.noise_loop(envs.HolosSingle, {**testing_kwargs,
-                                                                      'run_path': pid_folder}, type='pid')
+        overall_metrics = microutils.noise_loop(envs.HolosSingle,
+                                               {**testing_kwargs,
+                                                'run_path': pid_folder},
+                                               type='pid',
+                                               noise_levels=noise_levels)
         overall_metrics.to_csv(pid_noise_path, index=True)
     pid_noise_metrics = pd.read_csv(pid_noise_path, index_col=0)
 
     marl_noise_path = marl_folder / 'noise-metrics.csv'
     if not marl_noise_path.exists():
-        overall_metrics = microutils.noise_loop(envs.HolosMARL, {**testing_kwargs,
-                                                                      'run_path': marl_folder}, type='marl')
+        overall_metrics = microutils.noise_loop(envs.HolosMARL,
+                                               {**testing_kwargs,
+                                                'run_path': marl_folder},
+                                               type='marl',
+                                               noise_levels=noise_levels)
         overall_metrics.to_csv(marl_noise_path, index=True)
     marl_noise_metrics = pd.read_csv(marl_noise_path, index_col=0)
 
-    plt.close('all')
-    plt.figure(figsize=(10, 10))
     fig, axs = plt.subplots(2, 1, sharex=True, figsize=(10, 10)) # power, error
     axs[0].errorbar((single_noise_metrics.index * 100), single_noise_metrics['cae_mean'], yerr=single_noise_metrics['cae_std'], label='Single-RL')
     axs[0].errorbar((pid_noise_metrics.index * 100), pid_noise_metrics['cae_mean'], yerr=pid_noise_metrics['cae_std'], label='PID')
@@ -359,46 +327,11 @@ def main(args):
     axs[1].set_xlabel('Noise standard deviation (SPU)')
     axs[1].set_ylabel('Control Effort (degrees)')
     plt.legend()
-    plt.savefig(graph_path / f'7_noise-metrics.png')
-            
-
-
-
-
-
-
-
-    # single_1noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
-    #                                                                       'run_path': single_folder,
-    #                                                                       'noise': 0.01})
-    # single_2noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
-    #                                                                       'run_path': single_folder,
-    #                                                                       'noise': 0.02})
-    # single_3noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
-    #                                                                       'run_path': single_folder,
-    #                                                                       'noise': 0.03})
-    # # innoculated2_2noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
-    # #                                                                             'run_path': innoculated2_folder,
-    # #                                                                             'noise': 0.03})
-    # noise_path = graph_path / '5_noise-power-2SPU.png'
-    # data_list = [(single_1noise_history, 'desired_power', 'desired power'),
-    #              (single_1noise_history, 'actual_power', '1 SPU noise'),
-    #              (single_2noise_history, 'actual_power', '2 SPU noise'),
-    #              (single_3noise_history, 'actual_power', '3 SPU noise')]
-    # microutils.plot_history(noise_path, data_list, 'Power (SPU)')
-
-    # noise_path = graph_path / '5_noise-diff-2SPU.png'   
-    # data_list = [(single_1noise_history, 'diff', '1 SPU noise'),
-    #              (single_2noise_history, 'diff', '2 SPU noise'),
-    #              (single_3noise_history, 'diff', '3 SPU noise')]
-    # microutils.plot_history(noise_path, data_list, 'Power Difference (SPU)')
-
+    plt.savefig(graph_path / f'6_noise-metrics.png')
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', '--plotting', action='store_true',  # TODO remove, unused
-                        help='Plot interactive, intermediate results')
     parser.add_argument('-p', '--test_profile', type=str, default='test',
                         help='Profile to use for testing (test, train, longtest, lowpower)')
     parser.add_argument('-t', '--timesteps', type=int, default=2_000_000,
