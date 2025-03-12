@@ -117,6 +117,11 @@ def main(args):
     graph_path = Path.cwd() / 'graphs'
     graph_path.mkdir(exist_ok=True, parents=True)
 
+    # Clean up run_history
+    run_historys = Path.cwd().glob('runs/*/run_history*csv')
+    for run_history in run_historys:
+        run_history.unlink(missing_ok=True)
+
     # gather test histories
     #######################
     print(f'testing with {args.test_profile}:')
