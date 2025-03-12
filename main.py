@@ -287,7 +287,35 @@ def main(args):
     axs[1].legend()
     plt.savefig(graph_path / f'5_training-curves.png')
 
-    # Graph 6: cae and ce vs noise level for pid, single-rl, and marl
+    # Graph 6: run histories for pid, single-rl, and marl at 0.015 noise
+    # ##################################################################
+    pid_noise_history = microutils.test_pid(envs.HolosSingle, {**testing_kwargs,
+                                                               'run_path': pid_folder,
+                                                               'noise': 0.02})
+    single_noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
+                                                                         'run_path': single_folder,
+                                                                         'noise': 0.02})
+    marl_noise_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
+                                                                       'run_path': marl_folder,
+                                                                       'noise': 0.02})
+
+    fig, axs = plt.subplots(1, 1, sharex=True, figsize=(10, 5)) # power, error
+    axs.plot(pid_noise_history['time'], pid_noise_history['desired_power'], label='Desired power', color='k')
+    axs.plot(pid_noise_history['time'], pid_noise_history['actual_power'], label='PID')
+    axs.plot(single_noise_history['time'], single_noise_history['actual_power'], label='Single-RL')
+    axs.plot(marl_noise_history['time'], marl_noise_history['actual_power'], label='MARL')
+    axs.set_ylabel('Power (SPU)')
+    axs.legend()
+    # axs[1].plot(pid_noise_history['time'], np.insert(np.diff(pid_noise_history['drum_1']), 0, 0), label='PID')
+    # axs[1].plot(single_noise_history['time'], np.insert(np.diff(single_noise_history['drum_1']), 0, 0), label='Single-RL')
+    # axs[1].plot(marl_noise_history['time'], np.insert(np.diff(marl_noise_history['drum_1']), 0, 0), label='MARL')
+    # axs[1].axhline(y=0, color='k', linestyle='--')
+    # axs[1].set_xlabel('Time (s)')
+    # axs[1].set_ylabel('Drum speed (degrees per second)')
+    plt.legend()
+    plt.savefig(graph_path / f'6_noise-run-histories.png')
+
+    # Graph 7: cae and ce vs noise level for pid, single-rl, and marl
     # ###############################################################
     noise_levels = [0, 0.0025, 0.005, 0.0075, 0.01, 0.02, 0.03]
     single_noise_path = single_folder / 'noise-metrics.csv'
@@ -332,35 +360,7 @@ def main(args):
     axs[1].set_xlabel('Noise standard deviation (SPU)')
     axs[1].set_ylabel('Control Effort (degrees)')
     plt.legend()
-    plt.savefig(graph_path / f'6_noise-metrics.png')
-
-    # Graph 7: run histories for pid, single-rl, and marl at 0.015 noise
-    # ##################################################################
-    pid_noise_history = microutils.test_pid(envs.HolosSingle, {**testing_kwargs,
-                                                               'run_path': pid_folder,
-                                                               'noise': 0.02})
-    single_noise_history = microutils.test_trained_rl(envs.HolosSingle, {**testing_kwargs,
-                                                                         'run_path': single_folder,
-                                                                         'noise': 0.02})
-    marl_noise_history = microutils.test_trained_marl(envs.HolosMARL, {**testing_kwargs,
-                                                                       'run_path': marl_folder,
-                                                                       'noise': 0.02})
-
-    fig, axs = plt.subplots(1, 1, sharex=True, figsize=(10, 5)) # power, error
-    axs.plot(pid_noise_history['time'], pid_noise_history['desired_power'], label='Desired power', color='k')
-    axs.plot(pid_noise_history['time'], pid_noise_history['actual_power'], label='PID')
-    axs.plot(single_noise_history['time'], single_noise_history['actual_power'], label='Single-RL')
-    axs.plot(marl_noise_history['time'], marl_noise_history['actual_power'], label='MARL')
-    axs.set_ylabel('Power (SPU)')
-    axs.legend()
-    # axs[1].plot(pid_noise_history['time'], np.insert(np.diff(pid_noise_history['drum_1']), 0, 0), label='PID')
-    # axs[1].plot(single_noise_history['time'], np.insert(np.diff(single_noise_history['drum_1']), 0, 0), label='Single-RL')
-    # axs[1].plot(marl_noise_history['time'], np.insert(np.diff(marl_noise_history['drum_1']), 0, 0), label='MARL')
-    # axs[1].axhline(y=0, color='k', linestyle='--')
-    # axs[1].set_xlabel('Time (s)')
-    # axs[1].set_ylabel('Drum speed (degrees per second)')
-    plt.legend()
-    plt.savefig(graph_path / f'7_noise-run-histories.png')
+    plt.savefig(graph_path / f'7_noise-metrics.png')
 
 
 
