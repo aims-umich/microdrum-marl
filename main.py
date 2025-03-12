@@ -225,9 +225,37 @@ def main(args):
     fig.tight_layout()
     fig.savefig(graph_3_path)
 
-    # Graph 4: multi-action vs symmetric vs marl
+    # Graph 4: training curves (ep len and rew) multi-rl vs symmetric-rl vs marl
+    # ##################################################################
+    multi_logs_path = multi_folder / 'logs/PPO_1'
+    symmetric_logs_path = symmetric_folder / 'logs/PPO_1'
+    marl_logs_path = marl_folder / 'logs/PPO_1'
+    multi_ep_len = pd.read_csv(multi_logs_path / 'ep_len_mean.csv')
+    symmetric_ep_len = pd.read_csv(symmetric_logs_path / 'ep_len_mean.csv')
+    marl_ep_len = pd.read_csv(marl_logs_path / 'ep_len_mean.csv')
+    marl_ep_len['Step'] = marl_ep_len['Step'] / 8  # normalize by point kinetics simulations run
+    multi_ep_rew = pd.read_csv(multi_logs_path / 'ep_rew_mean.csv')
+    symmetric_ep_rew = pd.read_csv(symmetric_logs_path / 'ep_rew_mean.csv')
+    marl_ep_rew = pd.read_csv(marl_logs_path / 'ep_rew_mean.csv')
+    marl_ep_rew['Step'] = marl_ep_rew['Step'] / 8  # normalize by point kinetics simulations run
+
+    fig, axs = plt.subplots(2, 1, sharex=True, figsize=(10, 10)) # power, error
+    axs[0].plot(multi_ep_len['Step'], multi_ep_len['Value'], label='Multi-RL')
+    axs[0].plot(symmetric_ep_len['Step'], symmetric_ep_len['Value'], label='Symmetric-RL')
+    axs[0].plot(marl_ep_len['Step'], marl_ep_len['Value'], label='MARL')
+    axs[0].set_ylabel('Episode length (s)')
+    axs[0].legend()
+    axs[1].plot(multi_ep_rew['Step'], multi_ep_rew['Value'], label='Multi-RL')
+    axs[1].plot(symmetric_ep_rew['Step'], symmetric_ep_rew['Value'], label='Symmetric-RL')
+    axs[1].plot(marl_ep_rew['Step'], marl_ep_rew['Value'], label='MARL')
+    axs[1].set_xlabel('Environment timesteps')
+    axs[1].set_ylabel('Episode reward')
+    axs[1].legend()
+    plt.savefig(graph_path / f'4_training-curves.png')
+
+    # Graph 5: multi-action vs symmetric vs marl
     # ##########################################
-    graph_4_path = graph_path / f'4-multicompare-{args.test_profile}.png'
+    graph_5_path = graph_path / f'5-multicompare-{args.test_profile}.png'
     plt.clf()
     fig, axs = plt.subplots(4, 1, sharex=True, figsize=(10, 10)) # power, error
     axs[0].plot(multi_test_history['time'], multi_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
@@ -264,11 +292,11 @@ def main(args):
     axs[3].set_ylabel('Drum position (degrees)')
     axs[3].set_xlabel('Time (s)')
     fig.tight_layout()
-    fig.savefig(graph_4_path)
+    fig.savefig(graph_5_path)
 
-    # Graph 5: multi-action vs symmetric vs marl with Xenon and Iodine
+    # Graph 6: multi-action vs symmetric vs marl with Xenon and Iodine
     # ################################################################
-    graph_5_path = graph_path / f'5-multicompare-{args.test_profile}.png'
+    graph_6_path = graph_path / f'6-multicompare-{args.test_profile}.png'
     plt.clf()
     fig, axs = plt.subplots(5, 1, sharex=True, figsize=(10, 12)) # power, error
     axs[0].plot(multi_test_history['time'], multi_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
@@ -313,35 +341,7 @@ def main(args):
     axs[4].set_ylabel('Concentration (m^-3)')
     axs[4].set_xlabel('Time (s)')
     fig.tight_layout()
-    fig.savefig(graph_5_path)
-
-    # Graph 6: training curves (ep len and rew) multi-action vs symmetric vs marl
-    # ##################################################################
-    multi_logs_path = multi_folder / 'logs/PPO_1'
-    symmetric_logs_path = symmetric_folder / 'logs/PPO_1'
-    marl_logs_path = marl_folder / 'logs/PPO_1'
-    multi_ep_len = pd.read_csv(multi_logs_path / 'ep_len_mean.csv')
-    symmetric_ep_len = pd.read_csv(symmetric_logs_path / 'ep_len_mean.csv')
-    marl_ep_len = pd.read_csv(marl_logs_path / 'ep_len_mean.csv')
-    marl_ep_len['Step'] = marl_ep_len['Step'] / 8  # normalize by point kinetics simulations run
-    multi_ep_rew = pd.read_csv(multi_logs_path / 'ep_rew_mean.csv')
-    symmetric_ep_rew = pd.read_csv(symmetric_logs_path / 'ep_rew_mean.csv')
-    marl_ep_rew = pd.read_csv(marl_logs_path / 'ep_rew_mean.csv')
-    marl_ep_rew['Step'] = marl_ep_rew['Step'] / 8  # normalize by point kinetics simulations run
-
-    fig, axs = plt.subplots(2, 1, sharex=True, figsize=(10, 10)) # power, error
-    axs[0].plot(multi_ep_len['Step'], multi_ep_len['Value'], label='multi-action')
-    axs[0].plot(symmetric_ep_len['Step'], symmetric_ep_len['Value'], label='symmetric')
-    axs[0].plot(marl_ep_len['Step'], marl_ep_len['Value'], label='marl')
-    axs[0].set_ylabel('Episode length (s)')
-    axs[0].legend()
-    axs[1].plot(multi_ep_rew['Step'], multi_ep_rew['Value'], label='multi-action')
-    axs[1].plot(symmetric_ep_rew['Step'], symmetric_ep_rew['Value'], label='symmetric')
-    axs[1].plot(marl_ep_rew['Step'], marl_ep_rew['Value'], label='marl')
-    axs[1].set_xlabel('Environment timesteps')
-    axs[1].set_ylabel('Episode reward')
-    axs[1].legend()
-    plt.savefig(graph_path / f'6_training-curves.png')
+    fig.savefig(graph_6_path)
 
     # Graph 7: run histories for pid, single-rl, and marl at 0.015 noise
     # ##################################################################
