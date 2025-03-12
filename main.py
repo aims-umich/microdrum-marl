@@ -178,9 +178,9 @@ def main(args):
     graph_2_path = graph_path / f'2-singlespeed-{args.test_profile}.png'
     plt.clf()
     fig, axs = plt.subplots(3, 1, sharex=True, figsize=(10, 7)) # power, error, drum speed
-    axs[0].plot(pid_test_history['time'], pid_test_history['desired_power'], label='Desired power', color='black', linestyle=':')
-    axs[0].plot(pid_test_history['time'], pid_test_history['actual_power'], label='PID power', linestyle='-.')
-    axs[0].plot(single_test_history['time'], single_test_history['actual_power'], label='Single-RL power', linestyle='-')
+    axs[0].plot(pid_test_history['time'], pid_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
+    axs[0].plot(pid_test_history['time'], pid_test_history['actual_power'], label='PID power', linestyle=':')
+    axs[0].plot(single_test_history['time'], single_test_history['actual_power'], label='Single-RL power', linestyle='--')
     axs[0].legend()
     axs[0].set_ylabel('Power (SPU)')
     axs[1].plot(pid_test_history['time'], pid_test_history['diff'], label='PID error', linestyle=':')
@@ -201,8 +201,8 @@ def main(args):
     graph_3_path = graph_path / f'3-singleposition-{args.test_profile}.png'
     plt.clf()
     fig, axs = plt.subplots(3, 1, sharex=True, figsize=(10, 7)) # power, error, drum position
-    axs[0].plot(pid_test_history['time'], pid_test_history['desired_power'], label='Desired power', color='black', linestyle=':')
-    axs[0].plot(pid_test_history['time'], pid_test_history['actual_power'], label='PID power', linestyle='-.')
+    axs[0].plot(pid_test_history['time'], pid_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
+    axs[0].plot(pid_test_history['time'], pid_test_history['actual_power'], label='PID power', linestyle=':')
     axs[0].plot(single_test_history['time'], single_test_history['actual_power'], label='Single-RL power', linestyle='--')
     axs[0].legend()
     axs[0].set_ylabel('Power (SPU)')
