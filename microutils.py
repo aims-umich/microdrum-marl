@@ -195,8 +195,8 @@ def train_marl(env_type, env_kwargs, total_timesteps=40_000_000, n_envs=10):
     vec_log_folder = run_folder / 'logs/vec'
     env = VecMonitor(env, filename=str(vec_log_folder))
     # the model will be saved every 6envs * 8drums * 20_000 = 960_000 timesteps
-    save_freq = 1_000_000 / (8 * n_envs)
-    save_freq = round(save_freq, -3) # round to nearest 1000 to get saves every ~1 mil timesteps
+    save_freq = 100_000 / (8 * n_envs)
+    save_freq = round(save_freq, -3) # round to nearest 1000 to get saves every ~100k timesteps
     checkpoint_callback = CheckpointCallback(save_freq=save_freq, save_path=str(model_folder),
                                              name_prefix='ppo_marl')
     model = sb3.PPO("MultiInputPolicy", env, verbose=1, tensorboard_log=str(log_dir), device='cpu')

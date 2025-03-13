@@ -308,7 +308,7 @@ def main(args):
     axs[1].plot(multi_test_history['time'], multi_test_history['diff'], label='Multi-RL error', linestyle='-.')
     axs[1].plot(symmetric_test_history['time'], symmetric_test_history['diff'], label='Symmetric-RL error', linestyle=':')
     axs[1].plot(marl_test_history['time'], marl_test_history['diff'], label='MARL error', linestyle='-')
-    ylim = np.min([np.max(np.abs(multi_test_history['diff'])), 5, np.max(np.abs(symmetric_test_history['diff'])), np.max(np.abs(marl_test_history['diff']))])
+    ylim = np.min([5, np.max([np.max(np.abs(multi_test_history['diff'])), np.max(np.abs(symmetric_test_history['diff'])), np.max(np.abs(marl_test_history['diff']))])])
     axs[1].set_ylim(-ylim, ylim)
     axs[1].axhline(y=0, color='black', linestyle='--')
     axs[1].legend()
