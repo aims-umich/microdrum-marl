@@ -7,7 +7,9 @@ This uses python 3.11. Necessary packages may be found in pyproject.toml. The ea
 
 ```curl -LsSf https://astral.sh/uv/install.sh | sh```
 
-You will likely need to restart your terminal after installation.
+After installation, you will need to restart your terminal.
+
+If you have trouble with installation, check their [official documentation](https://docs.astral.sh/uv/getting-started/installation/).
 
 ## Regenerating results
 First clone this repository:

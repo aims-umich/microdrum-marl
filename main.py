@@ -297,6 +297,8 @@ def main(args):
     # Graph 6: multi-action vs symmetric vs marl with Xenon and Iodine
     # ################################################################
     graph_6_path = graph_path / f'6-multicompare-{args.test_profile}.png'
+    if args.disabled_drums > 0:
+        graph_6_path = graph_path / f'6-multicompare-{args.test_profile}-d-{args.disabled_drums}.png'
     plt.clf()
     fig, axs = plt.subplots(5, 1, sharex=True, figsize=(10, 12)) # power, error
     axs[0].plot(multi_test_history['time'], multi_test_history['desired_power'], label='Desired power', color='black', linestyle='-')
@@ -440,7 +442,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--test_profile', type=str, default='test',
                         help='Profile to use for testing (test, train, longtest, lowpower)')
-    parser.add_argument('-t', '--timesteps', type=int, default=2_000_000,
+    parser.add_argument('-t', '--timesteps', type=int, default=5_000_000,
                         help='Number of timesteps to train for')
     parser.add_argument('-d', '--disabled_drums', type=int, default=0,
                         help='Number of drums to disable during testing')

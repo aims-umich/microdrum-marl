@@ -218,7 +218,7 @@ def marl_control_loop(model, env):
 def test_trained_marl(env_type, env_kwargs):
     run_folder = env_kwargs['run_path']
     model_folder = run_folder / 'models/'
-    model_path = find_latest_file(model_folder, pattern='*.zip')
+    model_path = find_latest_file(model_folder, pattern='best*.zip')
     model = sb3.PPO.load(model_path, device='cpu')
     test_env = env_type(**env_kwargs)
     marl_control_loop(model, test_env)
