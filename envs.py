@@ -149,6 +149,7 @@ class HolosMulti(gym.Env):
             "drum_angles": gym.spaces.Box(low=0, high=1, shape=(8,), dtype=np.float32),
             "power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             "last_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            "current_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
         })
             
@@ -178,6 +179,7 @@ class HolosMulti(gym.Env):
             "drum_angles": self.drum_angles / 180,  # convert to 0 to 1 box space
             "power": np.array([fuzzed]),
             "last_power": np.array([fuzzed]),
+            "current_desired_power": np.array([current_desired_power / 100]),
             "next_desired_power": np.array([next_desired_power / 100]),
         }
 
@@ -218,6 +220,7 @@ class HolosMulti(gym.Env):
             "drum_angles": self.drum_angles / 180,  # convert to 0-1 box space
             "power": np.array([fuzzed]),
             "last_power": np.array([self.history[-2][9]]),  # 9 is the measured power index
+            "current_desired_power": np.array([current_desired_power / 100]),
             "next_desired_power": np.array([next_desired_power / 100]),  # convert to 0-1 box space
         }
 
@@ -282,6 +285,7 @@ class HolosSingle(gym.Env):
             "drum_angle": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             "power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             "last_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+            "current_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
         })
         self.multi_env.reset()
@@ -331,6 +335,7 @@ class HolosMARL(ParallelEnv):
                 "drum_angle": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
                 "power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
                 "last_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
+                "current_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
                 "next_desired_power": gym.spaces.Box(low=0, high=1, shape=(1,), dtype=np.float32),
             })
             for agent in self.agents
