@@ -251,7 +251,8 @@ def main(args):
     axs[1].set_xlabel('Environment timesteps')
     axs[1].set_ylabel('Episode reward')
     axs[1].legend()
-    plt.savefig(graph_path / f'4_training-curves.png')
+    fig.tight_layout()
+    fig.savefig(graph_path / f'4_training-curves.png')
 
     # Graph 5: multi-action vs symmetric vs marl
     # ##########################################
@@ -366,9 +367,10 @@ def main(args):
         axs.plot(single_noise_history['time'], single_noise_history['actual_power'], label='Single-RL')
         axs.plot(marl_noise_history['time'], marl_noise_history['actual_power'], label='MARL')
         axs.set_ylabel('Power (SPU)')
+        axs.set_xlabel('Time (s)')
         axs.legend()
-        plt.legend()
-        plt.savefig(graph_path / f'7_noise-run-histories.png')
+        fig.tight_layout()
+        fig.savefig(graph_path / f'7_noise-run-histories.png')
 
     # Graph 8: cae and ce vs noise level for pid, single-rl, and marl
     # ###############################################################
@@ -434,8 +436,9 @@ def main(args):
     axs[1].errorbar((marl_noise_metrics.index * 100), marl_noise_metrics['ce_mean'], yerr=marl_noise_metrics['ce_std'], label='MARL')
     axs[1].set_xlabel('Noise standard deviation (SPU)')
     axs[1].set_ylabel('Control Effort (degrees)')
-    plt.legend()
-    plt.savefig(graph_path / f'8_noise-metrics.png')
+    fig.tight_layout()
+    fig.legend()
+    fig.savefig(graph_path / f'8_noise-metrics.png')
 
 
 if __name__ == '__main__':
