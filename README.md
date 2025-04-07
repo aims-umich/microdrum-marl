@@ -1,6 +1,6 @@
 # Control of the Holos-Quad Nuclear Microreactor Through Reinforcement Learning
 
-This repo is intended to document and reproduce the methods and results of its corresponding paper. It is also intended to be an easy starting point and example to build from for others to perform their own reinforcement learning research with this microreactor model.
+This repo is intended to document and reproduce the methods and results of its corresponding paper ([found here](https://arxiv.org/pdf/2504.00156)). It is also intended to be an easy starting point and example to build from for others to perform their own reinforcement learning research with this microreactor model.
 
 ## Package setup
 This uses python 3.11. Necessary packages may be found in pyproject.toml. The easiest way to get things running is to install the [uv](https://astral.sh/uv/) package manager with:
