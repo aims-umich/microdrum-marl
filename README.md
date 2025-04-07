@@ -14,7 +14,7 @@ If you have trouble with installation, check their [official documentation](http
 ## Regenerating results
 First clone this repository:
 
-```git clone https://github.com/lionturkey/microdrum-marl.git```  
+```git clone https://github.com/aims-umich/microdrum-marl.git```  
 ```cd microdrum-marl```
 
 With uv installed, you can run:
