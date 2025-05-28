@@ -171,7 +171,7 @@ def main(args):
     axs[4].set_xlabel('Time (s)')
     axs[4].set_ylabel('Drum position (degrees)')
     fig.tight_layout()
-    fig.savefig(graph_1_path)
+    fig.savefig(graph_1_path, dpi=300)
 
     # Graph 2: PID vs single-RL on test profile without temperature or drum position
     # ##############################################################################
@@ -194,7 +194,7 @@ def main(args):
     axs[2].set_xlabel('Time (s)')
     axs[2].set_ylabel('Drum speed (degrees per second)')
     fig.tight_layout()
-    fig.savefig(graph_2_path)
+    fig.savefig(graph_2_path, dpi=300)
 
     # Graph 3: PID vs single-RL on test profile with drum position
     # ############################################################
@@ -223,7 +223,7 @@ def main(args):
     axs[3].set_xlabel('Time (s)')
     axs[3].set_ylabel('Drum position (degrees)')
     fig.tight_layout()
-    fig.savefig(graph_3_path)
+    fig.savefig(graph_3_path, dpi=300)
 
     # Graph 4: training curves (ep len and rew) multi-rl vs symmetric-rl vs marl
     # ##################################################################
@@ -240,19 +240,19 @@ def main(args):
     marl_ep_rew['Step'] = marl_ep_rew['Step'] / 8  # normalize by point kinetics simulations run
 
     fig, axs = plt.subplots(2, 1, sharex=True, figsize=(10, 10)) # power, error
-    axs[0].plot(multi_ep_len['Step'], multi_ep_len['Value'], label='Multi-RL')
-    axs[0].plot(symmetric_ep_len['Step'], symmetric_ep_len['Value'], label='Symmetric-RL')
-    axs[0].plot(marl_ep_len['Step'], marl_ep_len['Value'], label='MARL')
+    axs[0].plot(multi_ep_len['Step'] / 1_000_000, multi_ep_len['Value'], label='Multi-RL')
+    axs[0].plot(symmetric_ep_len['Step'] / 1_000_000, symmetric_ep_len['Value'], label='Symmetric-RL')
+    axs[0].plot(marl_ep_len['Step'] / 1_000_000, marl_ep_len['Value'], label='MARL')
     axs[0].set_ylabel('Episode length (s)')
     axs[0].legend()
-    axs[1].plot(multi_ep_rew['Step'], multi_ep_rew['Value'], label='Multi-RL')
-    axs[1].plot(symmetric_ep_rew['Step'], symmetric_ep_rew['Value'], label='Symmetric-RL')
-    axs[1].plot(marl_ep_rew['Step'], marl_ep_rew['Value'], label='MARL')
-    axs[1].set_xlabel('Environment timesteps')
+    axs[1].plot(multi_ep_rew['Step'] / 1_000_000, multi_ep_rew['Value'], label='Multi-RL')
+    axs[1].plot(symmetric_ep_rew['Step'] / 1_000_000, symmetric_ep_rew['Value'], label='Symmetric-RL')
+    axs[1].plot(marl_ep_rew['Step'] / 1_000_000, marl_ep_rew['Value'], label='MARL')
+    axs[1].set_xlabel('Training timesteps (in millions)')
     axs[1].set_ylabel('Episode reward')
     axs[1].legend()
     fig.tight_layout()
-    fig.savefig(graph_path / f'4_training-curves.png')
+    fig.savefig(graph_path / f'4_training-curves.png', dpi=300)
 
     # Graph 5: multi-action vs symmetric vs marl
     # ##########################################
@@ -293,7 +293,7 @@ def main(args):
     axs[3].set_ylabel('Drum position (degrees)')
     axs[3].set_xlabel('Time (s)')
     fig.tight_layout()
-    fig.savefig(graph_5_path)
+    fig.savefig(graph_5_path, dpi=300)
 
     # Graph 6: multi-action vs symmetric vs marl with Xenon and Iodine
     # ################################################################
@@ -346,7 +346,7 @@ def main(args):
     axs[4].set_ylabel('Concentration (m^-3)')
     axs[4].set_xlabel('Time (s)')
     fig.tight_layout()
-    fig.savefig(graph_6_path)
+    fig.savefig(graph_6_path, dpi=300)
 
     # Graph 7: run histories for pid, single-rl, and marl at 0.015 noise
     # ##################################################################
@@ -370,7 +370,7 @@ def main(args):
         axs.set_xlabel('Time (s)')
         axs.legend()
         fig.tight_layout()
-        fig.savefig(graph_path / f'7_noise-run-histories.png')
+        fig.savefig(graph_path / f'7_noise-run-histories.png', dpi=300)
 
     # Graph 8: cae and ce vs noise level for pid, single-rl, and marl
     # ###############################################################
@@ -436,9 +436,9 @@ def main(args):
     axs[1].errorbar((marl_noise_metrics.index * 100), marl_noise_metrics['ce_mean'], yerr=marl_noise_metrics['ce_std'], label='MARL')
     axs[1].set_xlabel('Noise standard deviation (SPU)')
     axs[1].set_ylabel('Control Effort (degrees)')
+    axs[1].legend()
     fig.tight_layout()
-    fig.legend()
-    fig.savefig(graph_path / f'8_noise-metrics.png')
+    fig.savefig(graph_path / f'8_noise-metrics.png', dpi=300)
 
 
 if __name__ == '__main__':
