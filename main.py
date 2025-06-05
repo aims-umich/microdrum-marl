@@ -99,8 +99,10 @@ def main(args):
         low_cae = float('inf')
         for model in model_list:
             model.touch(exist_ok=True)
-            history = microutils.test_trained_marl(envs.HolosMARL, {**training_kwargs,
-                                                                  'run_path': marl_folder})
+            history = microutils.test_trained_marl(envs.HolosMARL,
+                                                  {**training_kwargs,
+                                                   'run_path': marl_folder},
+                                                  model_path=model)
             _, cae, _, _ = microutils.calc_metrics(history)
             if cae < low_cae and len(history) == training_kwargs['episode_length']:
                 print(f'New best model found: {model.name} - CAE: {cae}')
