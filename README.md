@@ -35,7 +35,7 @@ To save training time, pretrained models and training outputs are included in th
 - symmetric-rl: a multi action agent trained for 5 million timesteps (estimated 3 hours)
 - marl: a MARL agent trained for 40 million timesteps (5 million simulation timesteps, estimated 5 hours)
 
-To retrain a given model, delete the *models* folder within the corresponding named directory in the *runs* folder. By default, this will be trained for 2 million simulation timesteps (which corresponds to 16 million timesteps in the marl case, since there are eight separate agent actions per simulation timestep). To change this, add the '-t' flag followed by the number of timesteps you would like to train for. For example, to train for 5 million timesteps, use:
+To retrain a given model, delete the *models* folder within the corresponding named directory in the *runs* folder. **Note that due to the stochastic nature of RL training, results will vary and not match the corresponding paper exactly, however, overall trends should be consistent.**. By default, this will be trained for 2 million simulation timesteps (which corresponds to 16 million timesteps in the marl case, since there are eight separate agent actions per simulation timestep). To change this, add the '-t' flag followed by the number of timesteps you would like to train for. For example, to train for 5 million timesteps, use:
 
 ```uv run main.py -t 5000000```
 
